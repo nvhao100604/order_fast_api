@@ -1,23 +1,39 @@
 # order_fast_api project
-## Thông tin phiên bản:
+## Version infomation:
 - Python 3.13.3
 - FastAPI 25.3
-## Hướng dẫn sử dụng:
-- Chạy:
+## Intruction:
+- Run:
 ```bash
 uvicorn app.main:app --reload --port 8080
 ```
-- Mở: 
+- Open link: 
 [Swagger API Documentation](http://localhost:8080/docs)
-## Cài đặt:
+## Install:
++ Framework:
 ```bash
 pip install fastapi[all]
 ```
-
 ```bash
 python -m venv venv
 ```
 + Database:
 ```bash
 pip install sqlalchemy psycopg2
+```
+
+## Set up:
+### Create database:    
+```bash
+create database restaurant_database
+```
+
+### Migrations running:
++ Initialize:
+```bash
+alembic init migrations
+```
++ Migrate:
+```bash
+python migrate.py <message>
 ```

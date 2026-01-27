@@ -1,0 +1,6 @@
+from fastapi import APIRouter
+from app.api.v1 import dish
+
+api_router = APIRouter()
+
+api_router.include_router(dish.router, prefix="/dish", tags=["Dish"])
