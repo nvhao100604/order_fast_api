@@ -1,3 +1,5 @@
+import enum
+from sqlalchemy import Enum as SQL_Enum
 from sqlalchemy import String, ForeignKey, DateTime, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
@@ -8,6 +10,11 @@ if TYPE_CHECKING:
     from .ordering import Order
     from .catalog import Dish
 
+class DiscountCategory(enum.Enum):
+    ORDER = "order"     
+    DISH = "dish"      
+    CUSTOMER = "customer"
+
 class Customer(Base):
     __tablename__ = "customer"
     name: Mapped[str] = mapped_column(String(255))
@@ -17,6 +24,11 @@ class Customer(Base):
 
 class Discount(Base):
     __tablename__ = "discount"
+
+    category: Mapped[DiscountCategory] = mapped_column(
+        SQL_Enum(DiscountCategory), 
+        nullable=True
+    )
     dateBegin: Mapped[datetime] = mapped_column(DateTime)
     dateEnd: Mapped[datetime] = mapped_column(DateTime)
     status: Mapped[int] = mapped_column(SmallInteger, default=1)

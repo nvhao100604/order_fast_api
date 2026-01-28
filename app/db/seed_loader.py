@@ -1,126 +1,163 @@
 import re
+import os
 from pathlib import Path
-from typing import List, Dict
+from datetime import datetime
+from typing import List, Dict, Any, Type, Callable
 
-from app.models import Category, Dish
+from app.db.session import SessionLocal
+from app.db.base import Base
+from app.models import (
+    Role, Staff, Category, Dish, 
+    Table, Customer, Order, OrderDetail, 
+    Review, Discount
+)
+from app.models.customer import DiscountCategory
+from app.models.ordering import TableStatus, OrderStatus
 
 # =========================
-# PATH
+# CẤU HÌNH ĐƯỜNG DẪN
 # =========================
 BASE_DIR = Path(__file__).resolve().parents[2]
-SQL_DIR = BASE_DIR / "sql" / "mysql"
-
+SQL_FILE_PATH = BASE_DIR / "sql" / "mysql" / "website_order.sql"
 
 # =========================
-# REGEX: INSERT INTO table (cols...) VALUES (...)
+# REGEX XỬ LÝ SQL
 # =========================
 INSERT_RE = re.compile(
-    r"""
-    INSERT\s+INTO\s+`?(\w+)`?\s*
-    \(([^)]+)\)\s*
-    VALUES\s*(.*?)
-    (?=;|\Z)
-    """,
-    re.I | re.S | re.X,
+    r"INSERT\s+INTO\s+[`\"]?(\w+)[`\"]?\s*\(([^)]+)\)\s*VALUES\s*(.*?)(?=;|\Z)",
+    re.I | re.S,
 )
 
+# =========================
+# BẢN ĐỒ CHUYỂN ĐỔI KIỂU DỮ LIỆU (Type Converters)
+# =========================
+# Giúp hàm Generic biết cách biến chuỗi từ SQL thành đối tượng Python chuẩn
+TYPE_CONVERTERS: Dict[str, Callable] = {
+    "id": int,
+    "price": float,
+    "totalPrice": float,
+    "quantity": int,
+    "rating": int,
+    "status": lambda v: int(v) if v.isdigit() else v, 
+    "categoryID": int,
+    "roleID": int,
+    "staffID": int,
+    "customerID": int,
+    "tableID": int,
+    "dishID": int,
+    "discountID": int,
+    # Xử lý thời gian cho các bảng Order, Review, Discount
+    "dateOrder": lambda v: datetime.fromisoformat(v.strip("'")),
+    "category": lambda v: DiscountCategory(v.strip("'")),
+    "dateBegin": lambda v: datetime.fromisoformat(v.strip("'")),
+    "dateEnd": lambda v: datetime.fromisoformat(v.strip("'")),
+    "created_at": lambda v: datetime.fromisoformat(v.strip("'")),
+}
 
 # =========================
-# PARSE VALUES BLOCK
+# HÀM HỖ TRỢ BÓC TÁCH (Helpers)
 # =========================
 def _parse_insert_values(values_block: str) -> List[List[str]]:
-    """
-    Input:
-        (1,'A'),(2,'B')
-    Output:
-        [['1','A'], ['2','B']]
-    """
-    rows: List[List[str]] = []
-
+    rows = []
+    # Tìm các cụm (val1, val2, ...)
     for row in re.findall(r"\((.*?)\)", values_block, re.S):
         cols = []
         current = ""
         in_string = False
-
         for ch in row:
-            if ch == "'" and not in_string:
-                in_string = True
-                continue
-            elif ch == "'" and in_string:
-                in_string = False
-                continue
-
+            if ch == "'" and not in_string: in_string = True
+            elif ch == "'" and in_string: in_string = False
+            
             if ch == "," and not in_string:
                 cols.append(current.strip())
                 current = ""
-            else:
-                current += ch
-
-        if current:
-            cols.append(current.strip())
-
+            else: current += ch
+        if current: cols.append(current.strip())
         rows.append(cols)
-
     return rows
 
-
 def _rows_to_dicts(columns: str, rows: List[List[str]]) -> List[Dict[str, str]]:
-    col_names = [c.strip().strip("`") for c in columns.split(",")]
+    col_names = [c.strip().strip("`").strip('"') for c in columns.split(",")]
     return [dict(zip(col_names, r)) for r in rows]
 
-
 # =========================
-# LOAD CATEGORIES
+# HÀM GENERIC DUY NHẤT (The Brain)
 # =========================
-def load_categories_from_sql(filename: str) -> List[Category]:
-    sql = (SQL_DIR / filename).read_text(encoding="utf-8")
-    categories: List[Category] = []
-
-    for match in INSERT_RE.finditer(sql):
-        if match.group(1) != "categories":
+def load_from_sql_generic(sql_content: str, table_name: str, model_class: Type) -> List[Any]:
+    items = []
+    for match in INSERT_RE.finditer(sql_content):
+        if match.group(1).lower() != table_name.lower():
             continue
 
-        columns = match.group(2)
-        rows = _parse_insert_values(match.group(3))
-        records = _rows_to_dicts(columns, rows)
-
+        records = _rows_to_dicts(match.group(2), _parse_insert_values(match.group(3)))
+        
         for r in records:
-            categories.append(
-                Category(
-                    id=int(r["id"]),
-                    name=r["name"],
-                )
-            )
-
-    return categories
-
+            processed_data = {}
+            # Lấy danh sách các cột thực tế đang có trong Model
+            model_columns = model_class.__table__.columns.keys()
+            
+            for key, val in r.items():
+                # CHỈ XỬ LÝ NẾU CỘT TỒN TẠI TRONG MODEL
+                if key in model_columns:
+                    val_str = val.strip("'")
+                    if val_str.upper() == "NULL":
+                        processed_data[key] = None
+                    elif key in TYPE_CONVERTERS:
+                        processed_data[key] = TYPE_CONVERTERS[key](val_str)
+                    else:
+                        processed_data[key] = val_str
+                # Nếu không có trong model, key này sẽ bị bỏ qua thay vì gây lỗi TypeError
+                
+            items.append(model_class(**processed_data))
+    return items
 
 # =========================
-# LOAD DISHES
+# HÀM THỰC THI CHÍNH (Main Execution)
 # =========================
-def load_dishes_from_sql(filename: str) -> List[Dish]:
-    sql = (SQL_DIR / filename).read_text(encoding="utf-8")
-    dishes: List[Dish] = []
+def run_seed():
+    if not SQL_FILE_PATH.exists():
+        print(f"❌ Không tìm thấy file: {SQL_FILE_PATH}")
+        return
 
-    for match in INSERT_RE.finditer(sql):
-        if match.group(1) != "dish":
-            continue
+    db = SessionLocal()
+    sql_content = SQL_FILE_PATH.read_text(encoding="utf-8")
 
-        columns = match.group(2)
-        rows = _parse_insert_values(match.group(3))
-        records = _rows_to_dicts(columns, rows)
+    try:
+        print("--- Đang dọn dẹp và nạp dữ liệu mới ---")
+        # Thứ tự nạp cực kỳ quan trọng để không lỗi khóa ngoại (Foreign Key)
+        # Bảng cha nạp trước, bảng con nạp sau
+        table_order = [
+            ("roles", Role),
+            ("categories", Category),
+            ("tables", Table),
+            ("discount", Discount),
+            ("customer", Customer),
+            ("staff", Staff),
+            ("dish", Dish),
+            ("orders", Order),
+            ("reviews", Review),
+            ("order_detail", OrderDetail)
+        ]
 
-        for r in records:
-            dishes.append(
-                Dish(
-                    id=int(r["id"]),
-                    name=r["name"],
-                    price=float(r["price"]),
-                    imgUrl=r["imgUrl"],
-                    describe=r["describe"],
-                    status=int(r["status"]),
-                    categoryID=int(r["categoryID"]),
-                )
-            )
+        for table_name, model_class in table_order:
+            print(f"-> Đang nạp bảng: {table_name}...")
+            # Xóa dữ liệu cũ (Tùy chọn, dùng CASCADE để sạch hoàn toàn)
+            db.execute(re.compile(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE", re.I).pattern)
+            
+            # Nạp dữ liệu mới
+            objects = load_from_sql_generic(sql_content, table_name, model_class)
+            if objects:
+                db.add_all(objects)
+                db.commit()
+                print(f"   ✅ Thành công: {len(objects)} bản ghi.")
 
-    return dishes
+        print("\n🏆 TẤT CẢ DỮ LIỆU ĐÃ ĐƯỢC NẠP THÀNH CÔNG!")
+
+    except Exception as e:
+        print(f"❌ LỖI HỆ THỐNG: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    run_seed()
