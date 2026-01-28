@@ -1,43 +1,22 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
 from pathlib import Path
 
-from app.db import Base
-from app.models import Dish, Category
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-SQL_DIR = BASE_DIR / "sql" / "mysql"
+from app.db.base import Base
+from app.db.seed_loader import (
+    load_categories_from_sql,
+    load_dishes_from_sql,
+)
 
-SQLITE_DB = "sqlite:///sql/sqlite/test_seed.db"
-
-def mysql_to_sqlite(sql: str) -> str:
-    sql = sql.replace("INSERT IGNORE", "INSERT OR IGNORE")
-    sql = sql.replace("`", "")
-    sql = sql.replace("ENGINE=InnoDB", "")
-    sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT")
-
-    if "ON DUPLICATE KEY UPDATE" in sql:
-        sql = sql.split("ON DUPLICATE KEY UPDATE")[0]
-
-    return sql
+BASE_DIR = Path(__file__).resolve().parents[2]
+SQLITE_DB = f"sqlite:///{BASE_DIR}/sql/sqlite/test_seed.db"
 
 
 def clear_all_data(engine):
     with engine.begin() as conn:
-        conn.execute(text("DELETE FROM dish"))
-        conn.execute(text("DELETE FROM categories"))
-
-
-def run_mysql_sql_on_sqlite(engine, filename: str):
-    sql_path = SQL_DIR / filename
-
-    with open(sql_path, "r", encoding="utf-8") as f:
-        raw_sql = f.read()
-
-    sqlite_sql = mysql_to_sqlite(raw_sql)
-
-    with engine.begin() as conn:
-        conn.execute(text(sqlite_sql))
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
 
 
 def test_seed_sqlite_from_mysql_sql():
@@ -48,25 +27,24 @@ def test_seed_sqlite_from_mysql_sql():
 
     SessionLocal = sessionmaker(bind=engine)
 
-    # 1️⃣ Create tables (1 lần là đủ)
+    # 1️⃣ Tạo table từ model
     Base.metadata.create_all(bind=engine)
 
     # 2️⃣ Clear data cũ
     clear_all_data(engine)
 
-    # 3️⃣ Run seed từ SQL MySQL
-    run_mysql_sql_on_sqlite(engine, "website_order.sql")
+    # 3️⃣ Load data từ SQL dump
+    categories = load_categories_from_sql("website_order.sql")
+    dishes = load_dishes_from_sql("website_order.sql")
 
-    # 4️⃣ Verify
-    db = SessionLocal()
+    # 4️⃣ Insert vào SQLite
+    with SessionLocal() as db:
+        db.add_all(categories)
+        db.commit()
 
-    categories = db.query(Category).all()
-    dishes = db.query(Dish).all()
+        db.add_all(dishes)
+        db.commit()
 
     assert len(categories) > 0
     assert len(dishes) > 0
-
-    db.close()
-
-if __name__ == "__main__":
-    test_seed_sqlite_from_mysql_sql()
+    print(f"Seeded {len(categories)} categories and {len(dishes)} dishes into SQLite.")
