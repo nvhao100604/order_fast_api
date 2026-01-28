@@ -2,7 +2,6 @@ from app.db.session import SessionLocal
 from app.models import Category
 from app.models import Dish
 
-
 def seed_categories_and_dishes():
     db = SessionLocal()
 

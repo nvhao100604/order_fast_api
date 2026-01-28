@@ -29,16 +29,15 @@ create database restaurant_database
 ```
 
 ### Migrations running:
-+ Initialize:
++ Initializing:
 ```bash
 alembic init migrations
 ```
-+ Migrate:
++ Migrating:
 ```bash
-python scripts/migrate.py <message>
+python -m scripts.migrate <message>
 ```
-
-+ Seed:
++ Seeding:
 ```bash
-python scripts/seed.py
+python -m scripts.seed.py
 ```
