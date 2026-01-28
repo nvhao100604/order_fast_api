@@ -35,5 +35,10 @@ alembic init migrations
 ```
 + Migrate:
 ```bash
-python migrate.py <message>
+python scripts/migrate.py <message>
+```
+
++ Seed:
+```bash
+python scripts/seed.py
 ```

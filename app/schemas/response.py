@@ -9,7 +9,6 @@ class ResponseSchema(BaseModel, Generic[T]):
     data: Optional[T] = None
     meta: Optional[dict] = None
 
-
 class PaginationMeta(BaseModel):
     total: int
     page: int
