@@ -2,6 +2,8 @@
 ## Version infomation:
 - Python 3.13.3
 - FastAPI 25.3
+- PostgreSQL 18
+- Supabase
 ## Intruction:
 - Run:
 ```bash
@@ -17,9 +19,9 @@ pip install fastapi[all]
 ```bash
 python -m venv venv
 ```
-+ Database:
++ Save to requirements.txt:
 ```bash
-pip install sqlalchemy psycopg2
+pip freeze > requirements.txt
 ```
 
 ## Set up:

@@ -1,8 +1,8 @@
-"""Initial tables
+"""initial_migration
 
-Revision ID: 62efdae9be20
+Revision ID: 3bb397c76d94
 Revises: 
-Create Date: 2026-01-27 17:54:57.197303
+Create Date: 2026-01-28 18:51:25.456541
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '62efdae9be20'
+revision: str = '3bb397c76d94'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -34,6 +34,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_customer_phoneNumber'), 'customer', ['phoneNumber'], unique=True)
     op.create_table('discount',
+    sa.Column('category', sa.Enum('ORDER', 'DISH', 'CUSTOMER', name='discountcategory'), nullable=True),
     sa.Column('dateBegin', sa.DateTime(), nullable=False),
     sa.Column('dateEnd', sa.DateTime(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),

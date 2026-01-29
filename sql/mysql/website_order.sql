@@ -361,7 +361,7 @@ CREATE TABLE `orders` (
         'Out for Delivery',
         'Delivery Successful',
         'Cancelled',
-        ' Pending Payment'
+        'Pending Payment'
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Pending confirmation',
     `totalPrice` double NOT NULL,
     `notes` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL

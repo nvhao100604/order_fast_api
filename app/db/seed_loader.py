@@ -90,24 +90,43 @@ def load_from_sql_generic(sql_content: str, table_name: str, model_class: Type) 
             continue
 
         records = _rows_to_dicts(match.group(2), _parse_insert_values(match.group(3)))
+        model_columns = model_class.__table__.columns.keys()
         
         for r in records:
             processed_data = {}
-            # Lấy danh sách các cột thực tế đang có trong Model
-            model_columns = model_class.__table__.columns.keys()
-            
             for key, val in r.items():
-                # CHỈ XỬ LÝ NẾU CỘT TỒN TẠI TRONG MODEL
                 if key in model_columns:
-                    val_str = val.strip("'")
-                    if val_str.upper() == "NULL":
+                    # Làm sạch chuỗi: xóa dấu nháy và khoảng trắng thừa
+                    val_str = val.strip("'").strip() 
+                    
+                    # --- XỬ LÝ ENUM TẬP TRUNG ---
+                    # 1. Xử lý cột 'status' cho bảng orders và tables
+                    if key == "status":
+                        if table_name == "orders":
+                            processed_data[key] = OrderStatus(val_str)
+                        elif table_name == "tables":
+                            processed_data[key] = TableStatus(val_str)
+                        else:
+                            processed_data[key] = val_str
+                            
+                    # 2. Xử lý cột 'category' cho bảng discount
+                    elif key == "category" and table_name == "discount":
+                        # Ép kiểu từ 'order' (string) sang DiscountCategory.ORDER (Enum)
+                        # Nếu DB lưu hoa (ORDER), dùng val_str.upper() nếu cần
+                        try:
+                            processed_data[key] = DiscountCategory(val_str)
+                        except ValueError:
+                            # Phòng trường hợp SQL là 'order' nhưng Enum định nghĩa là 'ORDER'
+                            processed_data[key] = DiscountCategory(val_str.upper())
+                    
+                    # --- XỬ LÝ CÁC KIỂU DỮ LIỆU KHÁC ---
+                    elif val_str.upper() == "NULL":
                         processed_data[key] = None
                     elif key in TYPE_CONVERTERS:
                         processed_data[key] = TYPE_CONVERTERS[key](val_str)
                     else:
                         processed_data[key] = val_str
-                # Nếu không có trong model, key này sẽ bị bỏ qua thay vì gây lỗi TypeError
-                
+            
             items.append(model_class(**processed_data))
     return items
 

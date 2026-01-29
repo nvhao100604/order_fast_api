@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str
 
+    # --- Supabase ---
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    
     # --- Security ---
     SECRET_KEY: str = "" 
     ALGORITHM: str = "HS256"
