@@ -1,4 +1,3 @@
-# app/crud/dish.py
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models import Dish
