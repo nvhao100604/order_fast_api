@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.api.v1 import router
 from app.core.config import settings
 from fastapi.exceptions import RequestValidationError
@@ -10,9 +12,18 @@ app = FastAPI(
     version="1.0.0",
     )
 
-# @app.get('/') #
-# def read_root():
-#     return RedirectResponse(url="/docs")
+# Thêm vào sau phần khởi tạo app = FastAPI(...)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://order-front-end-2-nvhao100604s-projects.vercel.app/"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get('/') #
+def read_root():
+    return RedirectResponse(url="/docs")
 
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(ValueError, value_error_handler)
