@@ -1,14 +1,14 @@
 {
-    "functions": {
-        "app/main.py": {
-            "maxDuration": 15,
-            "memory": 512
-        }
-    },
-    "rewrites": [
+    "builds": [
         {
-            "source": "/(.*)",
-            "destination": "app/main.py"
+            "src": "api/index.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/index.py"
         }
     ]
 }
