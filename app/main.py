@@ -15,13 +15,13 @@ app = FastAPI(
 # Thêm vào sau phần khởi tạo app = FastAPI(...)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://order-front-end-2-nvhao100604s-projects.vercel.app/"], 
+    allow_origins=["https://order-front-end-2-nvhao100604s-projects.vercel.app"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get('/') #
+@app.get('/', include_in_schema=False) #
 def read_root():
     return RedirectResponse(url="/docs")
 
