@@ -15,7 +15,7 @@ app = FastAPI(
 # Thêm vào sau phần khởi tạo app = FastAPI(...)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://order-front-end-2-nvhao100604s-projects.vercel.app"], 
+    allow_origins=["https://order-front-end-2.vercel.app"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
