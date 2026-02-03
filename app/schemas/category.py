@@ -1,3 +1,4 @@
+from typing import Optional
 from .base import BaseSchema
 
 class CategoryBase(BaseSchema):
@@ -5,3 +6,6 @@ class CategoryBase(BaseSchema):
 
 class CategoryResponse(CategoryBase):
     id: int
+
+class CategoryFilter(BaseSchema):
+    name: Optional[str] = None

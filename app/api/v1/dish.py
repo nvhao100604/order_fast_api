@@ -38,7 +38,7 @@ async def get_dishes(
             "total": total
         }
     )
-  
+
 
 @router.post(
     "",

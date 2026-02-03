@@ -2,15 +2,18 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models import Dish
 
-def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 100):
+def get_all_dishes(db: Session, skip: int = 0, limit: int = 10):
+    """Truy vấn tất cả món ăn từ DB"""
+    dishes = db.query(Dish).offset(skip).limit(limit).all()
+    total = db.query(func.count(Dish.id)).scalar()
+    return dishes, total
+
+def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     """Truy vấn danh sách món ăn từ DB có hỗ trợ phân trang"""
     query = db.query(Dish)
 
     if "name" in filters:
         query = query.filter(Dish.name.ilike(f"%{filters['name']}%"))
-    
-    if "categoryID" in filters:
-        query = query.filter(Dish.categoryID == filters['categoryID'])
         
     if "status" in filters:
         query = query.filter(Dish.status == filters['status'])
@@ -26,6 +29,13 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 100):
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
     
+    return dishes, total
+
+def get_dishes_by_category(db: Session, category_id: int, skip: int = 0, limit: int = 10):
+    """Truy vấn danh sách món ăn theo categoryID từ DB có hỗ trợ phân trang"""
+    query = db.query(Dish).filter(Dish.categoryID == category_id)
+    total = query.count()
+    dishes = query.offset(skip).limit(limit).all()
     return dishes, total
 
 def get_dish_count(db: Session) -> int:
