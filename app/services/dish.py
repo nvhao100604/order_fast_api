@@ -6,11 +6,10 @@ from app.schemas.dish import DishCreate, DishUpdate
 
 def get_all_dishes(db: Session, filters: dict, page: int = 1, limit: int = 10):
     """Xử lý logic phân trang và gọi CRUD"""
-    category_id = filters.get("categoryID")
     if(page < 1 or limit < 1):
         raise ValueError("Page and limit must be positive integers.")
     skip = (page - 1) * limit
-    if category_id < 0:
+    if "categoryID" in filters and filters["categoryID"] < 0:
         dishes, total = dish_crud.get_all_dishes(db, skip=skip, limit=limit)
     else:
         dishes, total = dish_crud.get_dishes(db, filters=filters, skip=skip, limit=limit)
