@@ -12,8 +12,15 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     """Truy vấn danh sách món ăn từ DB có hỗ trợ phân trang"""
     query = db.query(Dish)
 
+    if "categoryID" in filters:
+        category_id = filters.get("categoryID")
+        print("check id: ", category_id)
+        if category_id > 0:
+            query = query.filter(Dish.categoryID == filters['categoryID'])
+
     if "name" in filters:
-        query = query.filter(Dish.name.ilike(f"%{filters['name']}%"))
+        query = query.filter(
+            func.unaccent(Dish.name).ilike(func.unaccent(f"%{filters['name']}%")))
         
     if "status" in filters:
         query = query.filter(Dish.status == filters['status'])
@@ -23,19 +30,9 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     if "max_price" in filters:
         query = query.filter(Dish.price <= filters['max_price'])
 
-    if "categoryID" in filters:
-        query = query.filter(Dish.categoryID == filters['categoryID'])
-
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
     
-    return dishes, total
-
-def get_dishes_by_category(db: Session, category_id: int, skip: int = 0, limit: int = 10):
-    """Truy vấn danh sách món ăn theo categoryID từ DB có hỗ trợ phân trang"""
-    query = db.query(Dish).filter(Dish.categoryID == category_id)
-    total = query.count()
-    dishes = query.offset(skip).limit(limit).all()
     return dishes, total
 
 def get_dish_count(db: Session) -> int:

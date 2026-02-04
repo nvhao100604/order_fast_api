@@ -2,7 +2,6 @@
 ## Version infomation:
 - Python 3.13.3
 - FastAPI 25.3
-- PostgreSQL 18
 - Supabase
 ## Intruction:
 - Run:
