@@ -1,9 +1,9 @@
 from typing import List
-from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.ordering import OrderCreate, OrderDetailBase, OrderFilter, OrderResponse
+from app.schemas.ordering import OrderCreate, OrderFilter, OrderResponse
 from app.schemas.response import ResponseSchema
 from app.services import order as order_service
 
@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get(
     "",
     response_model=ResponseSchema[List[OrderResponse]],
-    responses={422: {"model" : ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model" : ResponseSchema}},
     summary="Get orders with pagination",
     description="Get a paginated list of orders from the database."
 )
@@ -38,16 +38,15 @@ async def get_orders(
 @router.post(
     "",
     response_model=ResponseSchema[OrderResponse],
-    responses={422: {"model": ResponseSchema} },
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema} },
     summary="Create an order",
     description="Create an order and insert to the database."
 )
 async def post_order(
-    details: List[OrderDetailBase] = Body(..., description="List of order details."),
-    order: OrderCreate = Depends(),
+    order: OrderCreate,
     db: Session = Depends(get_db),
 ):
-    order = order_service.post_order(db=db, order=order, details=details)
+    order = order_service.post_order(db=db, order=order)
     return ResponseSchema[OrderResponse](
         message="Create the order successfully.",
         data=order
@@ -56,7 +55,7 @@ async def post_order(
 @router.get(
     "/{id}",
     response_model=ResponseSchema[OrderResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Get an order by id.",
     description="Get an order's information by order id."
 )
@@ -65,7 +64,6 @@ async def get_order(
     id: int = Path(..., description="ID of the order", ge=1)
 ):
     order = order_service.get_order(db=db, id=id)
-
     return ResponseSchema[OrderResponse](
         data=order,
         message="Get order's information successfully."

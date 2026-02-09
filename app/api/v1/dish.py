@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, File, Path, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Path, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app import db
 from app.api.deps import get_db
 from app.schemas.dish import DishCreate, DishFilter, DishUpdate
 from app.services import dish as dish_service
@@ -15,7 +14,7 @@ router = APIRouter()
 @router.get(
     "", 
     response_model=ResponseSchema[List[DishResponse]],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Get Dishes with Pagination",
     description="Get a paginated list of dishes from the database."
 )
@@ -43,7 +42,7 @@ async def get_dishes(
 @router.post(
     "",
     response_model=ResponseSchema[DishResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Create a New Dish",
     description="Create a new dish in the database."
 )
@@ -76,7 +75,7 @@ async def upload_dish_image(file: UploadFile = File(...)):
 @router.get(
     "/{id}",
     response_model=ResponseSchema[DishResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Get Dish by ID",
     description="Get a specific dish by its ID."
 )
@@ -99,7 +98,7 @@ async def get_dish(
 @router.put(
         "/{id}",
     response_model=ResponseSchema[DishResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Update Dish by ID",
     description="Update an existing dish by its ID."
 )
@@ -124,7 +123,7 @@ async def put_dish(
 @router.patch(
     "/{id}",
     response_model=ResponseSchema[DishResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Partially Update Dish by ID",
     description="Partially update fields of an existing dish by its ID."
 )
@@ -148,7 +147,7 @@ async def patch_dish(
 @router.delete(
         "/{id}",
     response_model=ResponseSchema[DishResponse],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Delete Dish by ID",
     description="Delete a dish from the database by its ID."
 )

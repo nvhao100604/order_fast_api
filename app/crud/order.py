@@ -1,12 +1,9 @@
 from typing import List
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy import func
 from app.models.catalog import Dish
 from app.models.ordering import Order, OrderDetail
 from sqlalchemy.orm import Session
-
-from app.schemas.ordering import OrderDetailBase
-
 
 def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     query = db.query(Order)
@@ -38,16 +35,20 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
 
     return orders, total
 
-def post_order(db: Session, order_in: Order, details_in: List[OrderDetailBase]):
+def post_order(db: Session, order_in: Order, details_in: List[dict]):
     db.add(order_in)
     db.flush()
-
-    for detail in details_in:
-        dish_exists = db.query(Dish).filter(Dish.id == detail.dishID).first()
     
+    for detail in details_in:
+        if "dishID" not in detail:
+            raise ValueError("No dishID key in detail order.")
+        dish_exists = db.query(Dish).filter(Dish.id == detail["dishID"]).first()
         if not dish_exists:
-            raise HTTPException(status_code=404, detail=f"Dish with ID {detail.dishID} is not exist!")
-        detail_db = OrderDetail(**detail.model_dump(), orderID=order_in.id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Dish with ID {detail['dishID']} is not exist!")
+        # Add to database
+        detail_db = OrderDetail(**detail, orderID=order_in.id)
         db.add(detail_db)
 
     db.commit()

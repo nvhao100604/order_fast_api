@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.schemas.category import CategoryFilter, CategoryResponse
@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get(
     "",
     response_model=ResponseSchema[List[CategoryResponse]],
-    responses={422: {"model": ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Get Categories",
     description="Retrieve a list of all categories.",
 )

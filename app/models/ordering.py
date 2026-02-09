@@ -37,11 +37,14 @@ class Order(Base):
     )
     status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.PENDING)
     totalPrice: Mapped[float] = mapped_column(Float)
+    subtotal: Mapped[float] = mapped_column(Float)
+    tax: Mapped[float] = mapped_column(Float)
+    delivery: Mapped[float] = mapped_column(Float)
     notes: Mapped[Optional[str]] = mapped_column(String(255))
     
     staffID: Mapped[int] = mapped_column(ForeignKey("staff.id"))
     customerID: Mapped[int] = mapped_column(ForeignKey("customer.id"))
-    tableID: Mapped[int] = mapped_column(ForeignKey("tables.id"))
+    tableID: Mapped[int | None] = mapped_column(ForeignKey("tables.id"), nullable=True)
     discountID: Mapped[Optional[int]] = mapped_column(ForeignKey("discount.id"))
     
     staff: Mapped["Staff"] = relationship(back_populates="orders")

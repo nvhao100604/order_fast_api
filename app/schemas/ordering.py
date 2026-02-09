@@ -19,12 +19,19 @@ class OrderDetailResponse(OrderDetailBase):
     orderID: int
     dish: DishDetail
 
+class Total(BaseSchema):
+    subtotal: float
+    tax: float
+    delivery: float
+    total: float
+    
 class OrderCreate(BaseSchema):
     staffID: int
     customerID: int
     tableID: Optional[int] = None
-    totalPrice: float
+    totalPrice: Total
     notes: Optional[str] = None
+    details: List[OrderDetailBase]
 
 class OrderResponse(BaseSchema):
     id: int

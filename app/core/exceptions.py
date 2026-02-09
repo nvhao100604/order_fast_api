@@ -1,4 +1,4 @@
-from fastapi import Request, status
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from app.schemas.response import ResponseSchema
 from fastapi.exceptions import RequestValidationError
@@ -14,12 +14,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     full_message = " | ".join(error_messages)
     
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content=ResponseSchema(
             data=None,
             message=f"Invalid data: {full_message}",
-            meta={"errors": exc.errors()} # Trả về chi tiết lỗi trong meta để FE dễ debug
-        ).dict()
+            meta={
+                "type": "RequestValidationError",
+                "errors": exc.errors()
+                } # Trả về chi tiết lỗi trong meta để FE dễ debug
+        ).model_dump()
     )
 
 async def value_error_handler(request: Request, exc: ValueError):
@@ -45,5 +48,19 @@ async def global_exception_handler(request: Request, exc: Exception):
             data=None,
             message="Server encountered an unexpected error. Please try again later.",
             meta=None
+        ).model_dump()
+    )
+
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Xử lý các lỗi HTTPException (404, 403, 401...).
+    Đây là nơi bắt các lỗi bạn chủ động raise trong Service/CRUD.
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ResponseSchema(
+            data=None,
+            message=exc.detail, # Nội dung lỗi bạn viết trong 'detail'
+            meta={"status_code": exc.status_code}
         ).model_dump()
     )

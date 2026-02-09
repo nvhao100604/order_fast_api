@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from postgrest import APIError
 from supabase import StorageException, create_client, Client
 from app.core.config import get_settings
@@ -22,11 +23,24 @@ async def upload_image_to_storage(file_name: str, file_content: bytes):
         return image_url
     
     except StorageException as e:
-        # Lỗi: Bucket không tồn tại hoặc trùng tên file
-        raise ValueError(f"Storage error: {e.message}")
+    # Thường là lỗi do File (quá lớn, trùng tên) hoặc cấu hình Bucket
+    # Nếu là lỗi do user, dùng 400. Nếu lỗi Bucket không tồn tại, dùng 500.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Storage error: {e.message}"
+        )
+
     except APIError as e:
-        # Lỗi: Sai SUPABASE_KEY (service_role)
-        raise ValueError("Access denied: Invalid API credentials.")
+        # Đây là lỗi nghiêm trọng về cấu hình (Credential)
+        # User không thể làm gì để sửa lỗi này -> Dùng 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error: Access denied."
+        )
+
     except Exception as e:
-        # Lỗi hệ thống không mong muốn
-        raise ValueError("An unexpected error occurred during file upload.")
+        # Lỗi "trên trời rơi xuống"
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected system error occurred."
+        )
