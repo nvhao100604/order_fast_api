@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, DateTime, Double, Integer, Enum
+from sqlalchemy import Float, String, ForeignKey, DateTime, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from app.db.base import Base
@@ -36,7 +36,7 @@ class Order(Base):
         index=True
     )
     status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.PENDING)
-    totalPrice: Mapped[float] = mapped_column(Double)
+    totalPrice: Mapped[float] = mapped_column(Float)
     notes: Mapped[Optional[str]] = mapped_column(String(255))
     
     staffID: Mapped[int] = mapped_column(ForeignKey("staff.id"))
@@ -52,7 +52,7 @@ class Order(Base):
 class OrderDetail(Base):
     __tablename__ = "order_detail"
     quantity: Mapped[int] = mapped_column(Integer)
-    price: Mapped[float] = mapped_column(Double)
+    price: Mapped[float] = mapped_column(Float)
     
     orderID: Mapped[int] = mapped_column(ForeignKey("orders.id"))
     dishID: Mapped[int] = mapped_column(ForeignKey("dish.id"))

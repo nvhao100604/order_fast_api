@@ -13,6 +13,12 @@ class DishBase(BaseSchema):
 class DishResponse(DishBase):
     id: int
 
+class DishDetail(BaseSchema):
+    id: int
+    name: str
+    imgUrl: str
+
+
 class DishCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=100, description="Dish name")
     price: float = Field(..., ge=0, description="price must be non-negative")

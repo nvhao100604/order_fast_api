@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, Double, Text, SmallInteger
+from sqlalchemy import String, ForeignKey, Float, Text, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from typing import TYPE_CHECKING, List
@@ -15,7 +15,7 @@ class Category(Base):
 class Dish(Base):
     __tablename__ = "dish"
     name: Mapped[str] = mapped_column(String(255))
-    price: Mapped[float] = mapped_column(Double)
+    price: Mapped[float] = mapped_column(Float)
     imgUrl: Mapped[str] = mapped_column(String(255))
     describe: Mapped[str] = mapped_column(Text)
     status: Mapped[int] = mapped_column(SmallInteger, default=1)

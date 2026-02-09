@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
+
+from app.schemas.dish import DishDetail
 from .base import BaseSchema
 from app.models.ordering import TableStatus, OrderStatus
 
@@ -15,14 +17,14 @@ class OrderDetailBase(BaseSchema):
 class OrderDetailResponse(OrderDetailBase):
     id: int
     orderID: int
+    dish: DishDetail
 
 class OrderCreate(BaseSchema):
     staffID: int
     customerID: int
-    tableID: int
+    tableID: Optional[int] = None
     totalPrice: float
     notes: Optional[str] = None
-    details: List[OrderDetailBase]
 
 class OrderResponse(BaseSchema):
     id: int
@@ -31,3 +33,12 @@ class OrderResponse(BaseSchema):
     totalPrice: float
     notes: Optional[str]
     details: List[OrderDetailResponse]
+
+class OrderFilter(BaseSchema):
+    dateOrder: Optional[datetime] = None
+    status: Optional[OrderStatus] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    staffID: Optional[int] = None
+    customerID: Optional[int] = None
+    tableID: Optional[int] = None

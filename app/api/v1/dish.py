@@ -48,7 +48,7 @@ async def get_dishes(
     description="Create a new dish in the database."
 )
 async def post_dish(
-    dish: DishResponse,
+    dish: DishCreate,
     db: Session = Depends(get_db)
 ):
     """Endpoint thêm món ăn mới"""

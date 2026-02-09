@@ -25,10 +25,13 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     if "status" in filters:
         query = query.filter(Dish.status == filters['status'])
 
-    if "min_price" in filters:
-        query = query.filter(Dish.price >= filters['min_price'])
-    if "max_price" in filters:
-        query = query.filter(Dish.price <= filters['max_price'])
+    if "min_price" in filters and "max_price" in filters:
+        min_price = filters['min_price']
+        max_price = filters['max_price']
+        if min_price is not None and max_price is not None:
+            if min_price > max_price:
+                raise ValueError("The minimum price must be less than or equal the maximum price.")
+            query = query.filter(Dish.price >= min_price, Dish.price <= max_price)
 
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
