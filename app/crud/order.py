@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import exists, func
 from app.models.catalog import Dish
 from app.models.ordering import Order, OrderDetail
 from sqlalchemy.orm import Session
@@ -22,13 +22,11 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     if "status" in filters:
         query = query.filter(Order.status == filters['status'])
 
-    if "min_price" in filters and "max_price" in filters:
-        min_price = filters['min_price']
-        max_price = filters['max_price']
-        if min_price is not None and max_price is not None:
-            if min_price > max_price:
-                raise ValueError("The minimum price must be less than or equal the maximum price.")
-            query = query.filter(Order.totalPrice >= min_price, Order.totalPrice <= max_price)
+    if "min_price" in filters:
+        query = query.filter(Order.totalPrice >= filters["min_price"])
+    
+    if "max_price" in filters:
+        query = query.filter(Order.totalPrice <= filters["max_price"])
     
     total = query.count()
     orders = query.offset(skip).limit(limit).all()
@@ -40,14 +38,6 @@ def post_order(db: Session, order_in: Order, details_in: List[dict]):
     db.flush()
     
     for detail in details_in:
-        if "dishID" not in detail:
-            raise ValueError("No dishID key in detail order.")
-        dish_exists = db.query(Dish).filter(Dish.id == detail["dishID"]).first()
-        if not dish_exists:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
-                detail=f"Dish with ID {detail['dishID']} is not exist!")
-        # Add to database
         detail_db = OrderDetail(**detail, orderID=order_in.id)
         db.add(detail_db)
 
@@ -56,5 +46,4 @@ def post_order(db: Session, order_in: Order, details_in: List[dict]):
     return order_in
 
 def get_order(db: Session, id: int = 1):
-    order = db.query(Order).filter(Order.id == id).first()
-    return order
+    return db.query(Order).filter(Order.id == id).first()

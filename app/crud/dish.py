@@ -14,7 +14,7 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
 
     if "categoryID" in filters:
         category_id = filters.get("categoryID")
-        print("check id: ", category_id)
+        # print("check id: ", category_id)
         if category_id > 0:
             query = query.filter(Dish.categoryID == filters['categoryID'])
 
@@ -26,21 +26,15 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
         query = query.filter(Dish.status == filters['status'])
 
     if "min_price" in filters and "max_price" in filters:
-        min_price = filters['min_price']
-        max_price = filters['max_price']
-        if min_price is not None and max_price is not None:
-            if min_price > max_price:
-                raise ValueError("The minimum price must be less than or equal the maximum price.")
-            query = query.filter(Dish.price >= min_price, Dish.price <= max_price)
+        query = query.filter(Dish.price >= filters['min_price'])
+
+    if "max_price" in filters:
+        query = query.filter(Dish.price <= filters['max_price'])
 
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
     
     return dishes, total
-
-def get_dish_count(db: Session) -> int:
-    """Đếm tổng số món ăn trong database"""
-    return db.query(func.count(Dish.id)).scalar()
 
 def get_dish(db: Session, dish_id: int):
     """Truy vấn món ăn theo ID"""
@@ -53,26 +47,7 @@ def post_dish(db: Session, dish: Dish):
     db.refresh(dish)
     return dish
 
-def delete_dish(db: Session, dish_id: int):
-    """Xoá món ăn khỏi database theo ID"""
-    dish = db.query(Dish).filter(Dish.id == dish_id).first()
-    if dish:
-        db.delete(dish)
-        db.commit()
-    return dish
-
-def put_dish(db: Session, dish_id: int, updated_dish: Dish):
-    """Cập nhật thông tin món ăn theo ID"""
-    dish = db.query(Dish).filter(Dish.id == dish_id).first()
-    if dish:
-        dish.name = updated_dish.name
-        dish.describe = updated_dish.describe
-        dish.price = updated_dish.price
-        db.commit()
-        db.refresh(dish)
-    return dish
-
-def patch_dish(db: Session, dish_id: int, updated_fields: dict):
+def update_dish(db: Session, dish_id: int, updated_fields: dict):
     """Cập nhật một số trường của món ăn theo ID"""
     dish = db.query(Dish).filter(Dish.id == dish_id).first()
     if dish:
@@ -89,12 +64,3 @@ def delete_dish(db: Session, dish_id: int):
         db.delete(dish)
         db.commit()
     return dish
-
-def get_dishes_by_name(db: Session, name: str, skip: int = 0, limit: int = 100):
-    """Truy vấn danh sách món ăn theo tên từ DB có hỗ trợ phân trang"""
-    query = db.query(Dish).filter(Dish.name.ilike(f"%{name}%"))
-    return query.offset(skip).limit(limit).all()
-
-def get_dish_count_by_name(db: Session, name: str) -> int:
-    """Đếm tổng số món ăn theo tên trong database"""
-    return db.query(func.count(Dish.id)).filter(Dish.name.ilike(f"%{name}%")).scalar()

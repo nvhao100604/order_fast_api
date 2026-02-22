@@ -7,6 +7,12 @@ def get_all_dishes(db: Session, filters: dict, page: int = 1, limit: int = 10):
     """Xử lý logic phân trang và gọi CRUD"""
     if(page < 1 or limit < 1):
         raise ValueError("Page must be a positive integer and limit must be a positive integer.")
+    if "min_price" in filters and "max_price" in filters:
+        min_price = filters['min_price']
+        max_price = filters['max_price']
+        if min_price is not None and max_price is not None:
+            if min_price > max_price:
+                raise ValueError("The minimum price must be less than or equal the maximum price.")
     skip = (page - 1) * limit
     dishes, total = dish_crud.get_dishes(db, filters=filters, skip=skip, limit=limit)
 
@@ -17,20 +23,6 @@ def get_dish(db: Session, dish_id: int):
     if(dish_id < 1):
         raise ValueError("Dish ID must be a positive integer.")
     return dish_crud.get_dish(db, dish_id)
-
-def get_dishes_by_name(db: Session, name: str, page: int = 1, limit: int = 10):
-    """Lấy danh sách món ăn theo tên với phân trang"""
-    if(page < 1 or limit < 1):
-        raise ValueError("Page must be a positive integer and limit must be a positive integer.")
-
-    skip = (page - 1) * limit
-    if(not name):
-        dishes = dish_crud.get_dishes(db, skip=skip, limit=limit)
-        total = dish_crud.get_dish_count(db)
-    else:
-        dishes = dish_crud.get_dishes_by_name(db, name, skip=skip, limit=limit)
-        total = dish_crud.get_dish_count_by_name(db, name)
-    return dishes, total
 
 def post_dish(db: Session, dish: DishCreate):
     """Thêm món ăn mới vào database"""
@@ -43,7 +35,7 @@ def put_dish(db: Session, dish_id: int, updated_dish: DishCreate):
         raise ValueError("Dish ID must be a positive integer.")
     
     updated_dish_model = Dish(**updated_dish.model_dump())
-    return dish_crud.put_dish(db, dish_id, updated_dish_model)
+    return dish_crud.update_dish(db, dish_id, updated_dish_model)
 
 def patch_dish(db: Session, dish_id: int, updated_fields: DishUpdate):
     """Cập nhật một số trường của món ăn theo ID"""
@@ -59,7 +51,7 @@ def patch_dish(db: Session, dish_id: int, updated_fields: DishUpdate):
     for key in update_data():
         if key in blacklisted_keys:
             raise ValueError(f"Field '{key}' is read-only and cannot be modified.")   
-    return dish_crud.patch_dish(db, dish_id, update_data)
+    return dish_crud.update_dish(db, dish_id, update_data)
 
 def delete_dish(db: Session, dish_id: int):
     """Xoá món ăn khỏi database theo ID"""
