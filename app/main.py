@@ -18,6 +18,7 @@ app.add_middleware(
     allow_origins=[
         "https://order-front-end-2.vercel.app", 
         "https://order-front-end-blond.vercel.app",
+        "https://order-vh.vercel.app/",
         "http://localhost:3000"
     ], 
     allow_credentials=True,
