@@ -1,12 +1,11 @@
 from typing import List
-from fastapi import HTTPException, status
-from sqlalchemy import exists, func
-from app.models.catalog import Dish
+from sqlalchemy import func
 from app.models.ordering import Order, OrderDetail
 from sqlalchemy.orm import Session
 
 def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     query = db.query(Order)
+    
     if "staffID" in filters:
         query = query.filter(Order.staffID == filters["staffID"])
 
@@ -17,7 +16,7 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
         query = query.filter(Order.tableID == filters["tableID"]) 
 
     if "dateOrder" in filters:
-        query = query.filter(func.date(Order.dateOrder) == filters["dateOrder"])
+        query = query.filter(func.date(Order.createdAt) == filters["dateOrder"])
 
     if "status" in filters:
         query = query.filter(Order.status == filters['status'])
@@ -27,6 +26,15 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     
     if "max_price" in filters:
         query = query.filter(Order.totalPrice <= filters["max_price"])
+
+    if filters.get("start_date"):
+        query = query.filter(Order.createdAt >= filters["start_date"])
+
+    if filters.get("end_date"):
+        query = query.filter(Order.createdAt <= filters["end_date"])
+    
+    
+    query = query.order_by(Order.createdAt.desc())
     
     total = query.count()
     orders = query.offset(skip).limit(limit).all()

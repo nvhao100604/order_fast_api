@@ -18,6 +18,7 @@ class OrderDetailResponse(OrderDetailBase):
     id: int
     orderID: int
     dish: DishDetail
+    createdAt: datetime
 
 class Total(BaseSchema):
     subtotal: float
@@ -49,3 +50,5 @@ class OrderFilter(BaseSchema):
     staffID: Optional[int] = None
     customerID: Optional[int] = None
     tableID: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None

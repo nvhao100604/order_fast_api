@@ -1,11 +1,13 @@
-from sqlalchemy import String, ForeignKey, Float, Text, SmallInteger
+from sqlalchemy import Enum, String, ForeignKey, Float, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from typing import TYPE_CHECKING, List
 
+from app.models.enum import Status
+
 if TYPE_CHECKING:
     from .ordering import OrderDetail
-    from .customer import Review
+    from .user import Review
 
 class Category(Base):
     __tablename__ = "categories"
@@ -14,11 +16,13 @@ class Category(Base):
 
 class Dish(Base):
     __tablename__ = "dish"
+    
     name: Mapped[str] = mapped_column(String(255))
     price: Mapped[float] = mapped_column(Float)
     imgUrl: Mapped[str] = mapped_column(String(255))
     describe: Mapped[str] = mapped_column(Text)
-    status: Mapped[int] = mapped_column(SmallInteger, default=1)
+    status: Mapped[Status] = mapped_column(
+        Enum(Status), default=Status.ACTIVE)
     
     categoryID: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship(back_populates="dishes")

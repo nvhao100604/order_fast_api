@@ -31,6 +31,14 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     if "max_price" in filters:
         query = query.filter(Dish.price <= filters['max_price'])
 
+    if filters.get("start_date"):
+        query = query.filter(Dish.createdAt >= filters["start_date"])
+
+    if filters.get("end_date"):
+        query = query.filter(Dish.createdAt <= filters["end_date"])
+
+    query = query.order_by(Dish.createdAt.desc())
+
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
     

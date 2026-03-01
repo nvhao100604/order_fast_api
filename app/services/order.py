@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from app.crud import order as order_crud
 from app.crud import dish as dish_crud
+from app.crud import user as user_crud
 from app.models.ordering import Order
 from app.schemas.ordering import OrderCreate
 
@@ -10,7 +11,10 @@ def get_orders(
     filters: dict,
     page: int = 1,
     limit: int = 10,
+    current_user: int = None
 ):
+    if current_user is None:
+        raise ValueError("Current user is required.")
     if(page < 1 or limit < 1):
         raise ValueError("Page must be a positive integer and limit must be a positive integer.")
     if "min_price" in filters and "max_price" in filters:
@@ -19,8 +23,12 @@ def get_orders(
         if min_price is not None and max_price is not None:
             if min_price > max_price:
                 raise ValueError("The minimum price must be less than or equal the maximum price.")
+    user = user_crud.get_user_by_id(db=db, user_id=current_user)
+    if not user:
+        raise ValueError("User not found.")
+    
     skip = (page - 1) * limit
-    orders, total = order_crud.get_orders(db=db, filters=filters, skip=skip, limit=limit)
+    orders, total = order_crud.get_orders(db=db, filters=filters, skip=skip, limit=limit, current_user=current_user)
     return orders, total
 
 def post_order(

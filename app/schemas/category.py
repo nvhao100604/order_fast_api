@@ -6,6 +6,7 @@ class CategoryBase(BaseSchema):
 
 class CategoryResponse(CategoryBase):
     id: int
+    status: str = "active"
 
 class CategoryFilter(BaseSchema):
     name: Optional[str] = None
