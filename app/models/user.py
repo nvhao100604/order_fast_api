@@ -13,51 +13,74 @@ if TYPE_CHECKING:
 
 class Role(Base):
     __tablename__ = "roles"
+    
     name: Mapped[str] = mapped_column(String(255))
-    # Liên kết với bảng User thay vì Staff cũ
+    
     users: Mapped[List["User"]] = relationship(back_populates="internalRole")
 
 class User(Base):
     __tablename__ = "users"
     
-    # --- Thông tin chung cho Auth ---
     username: Mapped[str] = mapped_column(String(255), index=True, unique=True)
     email: Mapped[str] = mapped_column(String(255), index=True, unique=True)
     password: Mapped[str] = mapped_column(String(255))
-    status: Mapped[Status] = mapped_column(Enum(Status), default=Status.ACTIVE)
     
-    # --- Thông tin cá nhân ---
+    status: Mapped[Status] = mapped_column(
+        Enum(Status), 
+        default=Status.ACTIVE, 
+        server_default=Status.ACTIVE.value
+    )
+    
     name: Mapped[str] = mapped_column(String(255))
-    phoneNumber: Mapped[str] = mapped_column(String(10), index=True, unique=True)
-    
-    # --- Thông tin riêng cho từng loại (để Optional) ---
-    address: Mapped[Optional[str]] = mapped_column(String(255)) # Dùng cho Customer
-    
-    roleID: Mapped[Optional[int]] = mapped_column(ForeignKey("roles.id")) 
-    internalRole: Mapped[Optional["Role"]] = relationship(back_populates="users")
+    phoneNumber: Mapped[str] = mapped_column("phone_number", String(10), index=True, unique=True)
+    address: Mapped[Optional[str]] = mapped_column(String(255))
 
-    # --- Quan hệ chung ---
-    orders: Mapped[List["Order"]] = relationship(back_populates="user")
+    roleID: Mapped[Optional[int]] = mapped_column("role_id", ForeignKey("roles.id")) 
+    internalRole: Mapped[Optional["Role"]] = relationship(back_populates="users")
+    
+    # 1. Đơn hàng khách đặt
+    orders: Mapped[List["Order"]] = relationship(
+        "Order", 
+        foreign_keys="[Order.customerID]", 
+        back_populates="customer"
+    )
+    # 2. Đơn hàng nhân viên xử lý
+    staffOrders: Mapped[List["Order"]] = relationship(
+        "Order", 
+        foreign_keys="[Order.staffID]", 
+        back_populates="staff"
+    )
+
     reviews: Mapped[List["Review"]] = relationship(back_populates="user")
+    
     refreshTokens: Mapped[List["RefreshToken"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
 class Discount(Base):
     __tablename__ = "discount"
+    
     category: Mapped[DiscountCategory] = mapped_column(Enum(DiscountCategory), nullable=True)
-    dateBegin: Mapped[datetime] = mapped_column(DateTime)
-    dateEnd: Mapped[datetime] = mapped_column(DateTime)
-    status: Mapped[Status] = mapped_column(Enum(Status), default=Status.ACTIVE)
+    
+    dateBegin: Mapped[datetime] = mapped_column("date_begin", DateTime)
+    dateEnd: Mapped[datetime] = mapped_column("date_end", DateTime)
+    
+    status: Mapped[Status] = mapped_column(
+        Enum(Status), 
+        default=Status.ACTIVE, 
+        server_default=Status.ACTIVE.value
+    )
+
+    orders: Mapped[List["Order"]] = relationship(back_populates="discount")
 
 class Review(Base):
     __tablename__ = "reviews"
+    
     rating: Mapped[int] = mapped_column(SmallInteger)
     comment: Mapped[str] = mapped_column(String(255))
     
-    # Liên kết tới User thay vì Customer cũ
-    userID: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    userID: Mapped[int] = mapped_column("user_id", ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="reviews")
 
-    dishID: Mapped[int] = mapped_column(ForeignKey("dish.id"))
+    dishID: Mapped[int] = mapped_column("dish_id", ForeignKey("dish.id"))
     dish: Mapped["Dish"] = relationship(back_populates="reviews")

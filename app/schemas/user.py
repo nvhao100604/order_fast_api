@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from app.models.enum import Status
@@ -25,6 +27,8 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     roleID: Optional[int] = None
+    createdAt: datetime
+    updatedAt: datetime
 
 class UserFilter(UserUpdate):
     pass

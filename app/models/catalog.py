@@ -19,12 +19,16 @@ class Dish(Base):
     
     name: Mapped[str] = mapped_column(String(255))
     price: Mapped[float] = mapped_column(Float)
-    imgUrl: Mapped[str] = mapped_column(String(255))
-    describe: Mapped[str] = mapped_column(Text)
-    status: Mapped[Status] = mapped_column(
-        Enum(Status), default=Status.ACTIVE)
+    imgUrl: Mapped[str] = mapped_column("img_url", String(255))
+    describe: Mapped[str] = mapped_column("describe", Text)
     
-    categoryID: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    status: Mapped[Status] = mapped_column(
+        Enum(Status), 
+        default=Status.ACTIVE, 
+        server_default=Status.ACTIVE.value
+    )
+
+    categoryID: Mapped[int] = mapped_column("category_id", ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship(back_populates="dishes")
-    order_details: Mapped[List["OrderDetail"]] = relationship(back_populates="dish")
+    orderDetails: Mapped[List["OrderDetail"]] = relationship(back_populates="dish")
     reviews: Mapped[List["Review"]] = relationship(back_populates="dish")

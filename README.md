@@ -40,5 +40,10 @@ python -m scripts.migrate <message>
 ```
 + Seeding:
 ```bash
-python -m scripts.seed.py
+python -m scripts.seed
+```
+
++ Testing:
+```bash
+python -m app.tests.test_model
 ```

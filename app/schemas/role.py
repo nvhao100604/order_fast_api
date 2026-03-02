@@ -11,6 +11,8 @@ class RoleBase(BaseModel):
 
 class RoleResponse(RoleBase):
     id: int
+    createdAt: datetime
+    updatedAt: datetime
 
 # --- REVIEW SCHEMAS ---
 class ReviewBase(BaseModel):
@@ -23,18 +25,21 @@ class ReviewCreate(ReviewBase):
 
 class ReviewResponse(ReviewBase):
     id: int
-    userID: int # Đổi từ customerID sang userID
+    userID: int 
     createdAt: datetime
+    updatedAt: datetime
 
 # --- DISCOUNT SCHEMAS ---
 class DiscountBase(BaseModel):
-    category: Optional[str] = None # Có thể dùng Enum DiscountCategory nếu đã khai báo
+    category: Optional[str] = None
     dateBegin: datetime
     dateEnd: datetime
     status: Status = Status.ACTIVE
 
 class DiscountResponse(DiscountBase):
     id: int
+    createdAt: datetime
+    updatedAt: datetime
 
 class DiscountDetailOrderBase(BaseModel):
     discountID: int
@@ -43,3 +48,5 @@ class DiscountDetailOrderBase(BaseModel):
 
 class DiscountDetailOrderResponse(DiscountDetailOrderBase):
     id: int
+    createdAt: datetime
+    updatedAt: datetime

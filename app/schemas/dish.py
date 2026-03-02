@@ -18,11 +18,12 @@ class DishBase(BaseSchema):
     describe: str
     status: int = DishStatus.IN_STOCK
     categoryID: int
-    createdAt: Optional[str] = None
 
 class DishResponse(DishBase):
     id: int
     category: CategoryResponse
+    createdAt: datetime
+    updatedAt: datetime
 
 class DishCreate(BaseSchema):
     name: str = Field(..., min_length=3, max_length=100, description="Dish name")

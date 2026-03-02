@@ -4,22 +4,25 @@ from app.db.base import Base
 from typing import TYPE_CHECKING, List, Optional
 
 from app.models.enum import OrderStatus, TableStatus
-from app.models.user import Discount
 
 if TYPE_CHECKING:
-    from .user import User
+    from .user import User, Discount
     from .catalog import Dish
 
 class Table(Base):
     __tablename__ = "tables"
 
     number: Mapped[int] = mapped_column(Integer, unique=True)
-    min_capacity: Mapped[int] = mapped_column(Integer, nullable=False)
-    max_capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    minCapacity: Mapped[int] = mapped_column("min_capacity", Integer, nullable=False)
+    maxCapacity: Mapped[int] = mapped_column("max_capacity", Integer, nullable=False)
+    
     status: Mapped[TableStatus] = mapped_column(
         Enum(TableStatus),
-        default=TableStatus.Empty
+        default=TableStatus.Empty,
+        server_default=TableStatus.Empty.value
     )
+    
     orders: Mapped[List["Order"]] = relationship(back_populates="table")
 
     __table_args__ = (
@@ -30,34 +33,46 @@ class Table(Base):
 class Order(Base):
     __tablename__ = "orders"
 
-    status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.PENDING)
-    totalPrice: Mapped[float] = mapped_column(Float)
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(OrderStatus), 
+        default=OrderStatus.PENDING,
+        server_default=OrderStatus.PENDING.value
+    )
+    
+    totalPrice: Mapped[float] = mapped_column("total_price", Float)
     subtotal: Mapped[float] = mapped_column(Float)
     tax: Mapped[float] = mapped_column(Float)
     delivery: Mapped[float] = mapped_column(Float)
     notes: Mapped[Optional[str]] = mapped_column(String(255))
     
-    staffID: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    staff: Mapped["User"] = relationship(back_populates="orders")
+   # Staff Mapping
+    staffID: Mapped[int] = mapped_column("staff_id", ForeignKey("users.id"))
+    staff: Mapped["User"] = relationship(
+        "User", foreign_keys=[staffID], back_populates="staffOrders"
+    )
 
-    customerID: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    customer: Mapped["User"] = relationship(back_populates="orders")
+    # Customer Mapping
+    customerID: Mapped[int] = mapped_column("customer_id", ForeignKey("users.id"))
+    customer: Mapped["User"] = relationship(
+        "User", foreign_keys=[customerID], back_populates="orders"
+    )
 
-    tableID: Mapped[int | None] = mapped_column(ForeignKey("tables.id"), nullable=True)
+    tableID: Mapped[int | None] = mapped_column("table_id", ForeignKey("tables.id"), nullable=True)
     table: Mapped["Table"] = relationship(back_populates="orders")
 
-    discountID: Mapped[Optional[int]] = mapped_column(ForeignKey("discount.id"))
+    discountID: Mapped[Optional[int]] = mapped_column("discount_id", ForeignKey("discount.id"))
     discount: Mapped[Optional["Discount"]] = relationship(back_populates="orders")
 
     details: Mapped[List["OrderDetail"]] = relationship(back_populates="order")
 
 class OrderDetail(Base):
     __tablename__ = "order_details"
+    
     quantity: Mapped[int] = mapped_column(Integer)
     price: Mapped[float] = mapped_column(Float)
     
-    orderID: Mapped[int] = mapped_column(ForeignKey("orders.id"))
+    orderID: Mapped[int] = mapped_column("order_id", ForeignKey("orders.id"))
     order: Mapped["Order"] = relationship(back_populates="details")
 
-    dishID: Mapped[int] = mapped_column(ForeignKey("dish.id"))
-    dish: Mapped["Dish"] = relationship(back_populates="order_details")
+    dishID: Mapped[int] = mapped_column("dish_id", ForeignKey("dish.id"))
+    dish: Mapped["Dish"] = relationship(back_populates="orderDetails")

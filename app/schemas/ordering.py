@@ -18,7 +18,6 @@ class OrderDetailResponse(OrderDetailBase):
     id: int
     orderID: int
     dish: DishDetail
-    createdAt: datetime
 
 class Total(BaseSchema):
     subtotal: float
@@ -41,6 +40,8 @@ class OrderResponse(BaseSchema):
     totalPrice: float
     notes: Optional[str]
     details: List[OrderDetailResponse]
+    createdAt: datetime
+    updatedAt: datetime
 
 class OrderFilter(BaseSchema):
     dateOrder: Optional[datetime] = None
