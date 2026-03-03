@@ -1,8 +1,9 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.crud import order as order_crud
 from app.crud import dish as dish_crud
 from app.crud import user as user_crud
+from app.models.enum import OrderStatus
 from app.models.ordering import Order
 from app.schemas.ordering import OrderCreate
 
@@ -37,8 +38,8 @@ def post_order(
 ):
     if len(order.details) <= 0:
         raise ValueError("Order must contain at least one dish (details cannot be empty)!")
-    p = order.totalPrice
-    if (p.tax + p.subtotal + p.delivery) != p.total:
+    p = order
+    if (p.tax + p.subtotal + p.delivery) != p.totalPrice:
         raise ValueError("The sum of itemized costs does not match the total price provided.")
     # dump order data for crud
     order_data = order.model_dump()
@@ -76,3 +77,28 @@ def get_order(
     if id < 1:
         raise ValueError("Order ID must be greater than 0.")
     return order_crud.get_order(db=db, id=id)
+
+def update_order_status(
+    db: Session,
+    order_id: int,
+    new_status: OrderStatus
+):
+    """
+    Cập nhật trạng thái đơn hàng.
+    Kiểm tra ID đơn hàng trước khi thực hiện update.
+    """
+    if order_id < 1:
+        raise ValueError("Order ID must be greater than 0.")
+
+    order = order_crud.get_order(db=db, id=order_id)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with id {order_id} not found."
+        )
+    
+    return order_crud.update_order(
+        db=db, 
+        order_id=order_id, 
+        updated_fields={"status": new_status}
+    )

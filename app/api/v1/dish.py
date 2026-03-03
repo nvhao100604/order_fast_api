@@ -9,9 +9,10 @@ from app.schemas import DishResponse
 from app.schemas.response import ResponseSchema
 from app.services.storage import upload_image_to_storage
 
-router = APIRouter()
+public_router = APIRouter()
+private_router = APIRouter()
 
-@router.get(
+@public_router.get(
     "", 
     response_model=ResponseSchema[List[DishResponse]],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -39,7 +40,7 @@ async def get_dishes(
     )
 
 
-@router.post(
+@private_router.post(
     "",
     response_model=ResponseSchema[DishResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -58,7 +59,7 @@ async def post_dish(
     )
 
 
-@router.post("/upload")
+@private_router.post("/upload")
 async def upload_dish_image(file: UploadFile = File(...)):
     # Đọc nội dung file ảnh
     content = await file.read()
@@ -72,7 +73,7 @@ async def upload_dish_image(file: UploadFile = File(...)):
         "data": {"imgUrl": img_url}
     }
 
-@router.get(
+@public_router.get(
     "/{id}",
     response_model=ResponseSchema[DishResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -95,7 +96,7 @@ async def get_dish(
     )
 
 
-@router.put(
+@private_router.put(
         "/{id}",
     response_model=ResponseSchema[DishResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -120,7 +121,7 @@ async def put_dish(
     )
 
 
-@router.patch(
+@private_router.patch(
     "/{id}",
     response_model=ResponseSchema[DishResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -144,7 +145,7 @@ async def patch_dish(
         message=f"Update dish successfully with id: {id}",
     )
 
-@router.delete(
+@private_router.delete(
         "/{id}",
     response_model=ResponseSchema[DishResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},

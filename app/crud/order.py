@@ -33,7 +33,6 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     if filters.get("end_date"):
         query = query.filter(Order.createdAt <= filters["end_date"])
     
-    
     query = query.order_by(Order.createdAt.desc())
     
     total = query.count()
@@ -55,3 +54,23 @@ def post_order(db: Session, order_in: Order, details_in: List[dict]):
 
 def get_order(db: Session, id: int = 1):
     return db.query(Order).filter(Order.id == id).first()
+
+def update_order(db: Session, order_id: int, updated_fields: dict):
+    """Cập nhật các trường thông tin của đơn hàng (ví dụ: status)"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if order:
+        for key, value in updated_fields.items():
+            if hasattr(order, key):
+                setattr(order, key, value)
+        db.commit()
+        db.refresh(order)
+    return order
+
+def delete_order(db: Session, id: int):
+    """Xóa đơn hàng (thường ít dùng, nên dùng Cancel thay thế)"""
+    order = db.query(Order).filter(Order.id == id).first()
+    if order:
+        db.delete(order)
+        db.commit()
+        return True
+    return False

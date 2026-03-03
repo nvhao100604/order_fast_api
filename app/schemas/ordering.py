@@ -1,13 +1,31 @@
 from datetime import datetime
 from typing import List, Optional
+from pydantic import Field
 
 from app.schemas.dish import DishDetail
 from .base import BaseSchema
-from app.models.ordering import TableStatus, OrderStatus
+from app.models.enum import OrderStatus, TableStatus
 
-class TableResponse(BaseSchema):
-    id: int
+# --- Table Schemas ---
+class TableBase(BaseSchema):
+    number: int
+    minCapacity: int
+    maxCapacity: int
     status: TableStatus
+
+class TableResponse(TableBase):
+    id: int
+
+class TableUpdate(BaseSchema):
+    number: Optional[int]
+    minCapacity: Optional[int]
+    maxCapacity: Optional[int]
+    status: Optional[TableStatus]
+
+class TableFilter(TableUpdate):
+    pass
+
+# --- Order Detail Schemas ---
 
 class OrderDetailBase(BaseSchema):
     dishID: int
@@ -19,32 +37,52 @@ class OrderDetailResponse(OrderDetailBase):
     orderID: int
     dish: DishDetail
 
-class Total(BaseSchema):
+# --- Total / Pricing Schemas ---
+
+class OrderPricing(BaseSchema):
     subtotal: float
     tax: float
     delivery: float
-    total: float
-    
+    totalPrice: float = Field(..., alias="totalPrice")
+
+# --- Order Schemas ---
+
 class OrderCreate(BaseSchema):
     staffID: int
     customerID: int
     tableID: Optional[int] = None
-    totalPrice: Total
-    notes: Optional[str] = None
+    discountID: Optional[int] = None
+    
+    subtotal: float
+    tax: float
+    delivery: float
+    totalPrice: float
+    
+    notes: Optional[str] = Field(None, max_length=255)
     details: List[OrderDetailBase]
 
 class OrderResponse(BaseSchema):
     id: int
-    dateOrder: datetime
     status: OrderStatus
+    
+    subtotal: float
+    tax: float
+    delivery: float
     totalPrice: float
+    
     notes: Optional[str]
+    staffID: int
+    customerID: int
+    tableID: Optional[int]
+    discountID: Optional[int]
+    
     details: List[OrderDetailResponse]
     createdAt: datetime
     updatedAt: datetime
 
+# --- Filter Schemas ---
+
 class OrderFilter(BaseSchema):
-    dateOrder: Optional[datetime] = None
     status: Optional[OrderStatus] = None
     min_price: Optional[float] = None
     max_price: Optional[float] = None

@@ -22,8 +22,10 @@ class TableStatus(enum.Enum):
     Taken = "Taken"
 
 class OrderStatus(enum.Enum):
-    PENDING = "Pending confirmation"
-    OUT_FOR_DELIVERY = "Out for Delivery"
-    DELIVERY_SUCCESSFUL = "Delivery Successful"
+    PENDING = "Pending"
+    CONFIRMED = "Confirmed"
+    PREPARING = "Preparing"
+    SHIPPING ="Out for Delivery"
+    COMPLETED = "Completed"
     CANCELLED = "Cancelled"
-    PENDING_PAYMENT = "Pending Payment"
+    UNPAID = "Pending Payment"

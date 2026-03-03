@@ -6,10 +6,11 @@ from app.api.deps import get_db
 from app.schemas import ResponseSchema, TokenResponse, Credential, UserResponse, UserCreate
 from app.services import auth as auth_services 
 
-router = APIRouter()
+public_router = APIRouter()
+private_router = APIRouter()
 
 # LOGIN
-@router.post(
+@public_router.post(
     "/login",
     response_model=ResponseSchema[TokenResponse],
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
@@ -28,7 +29,7 @@ async def login(response: Response, credential: Credential, db : Session = Depen
     )
 
 # LOGOUT
-@router.post(
+@private_router.post(
     "/logout",
     response_model=ResponseSchema,
     summary="Logout",
@@ -48,7 +49,7 @@ async def logout(request: Request, response: Response, db: Session = Depends(get
     )
 
 # REFRESH TOKEN
-@router.post(
+@private_router.post(
     "/refresh-token",
     response_model=ResponseSchema[TokenResponse],
     summary="Refresh Token",
@@ -68,7 +69,7 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)):
     )
 
 # REGISTER
-@router.post(
+@public_router.post(
     "/register",
     response_model=ResponseSchema[UserResponse],
     summary="Register",
@@ -84,7 +85,7 @@ async def register(data: UserCreate, db: Session = Depends(get_db)):
     )
 
 # REVOKE ALL TOKENS
-@router.post(
+@private_router.post(
     "/revoke-all-tokens",
     response_model=ResponseSchema,
     summary="Revoke All Tokens",

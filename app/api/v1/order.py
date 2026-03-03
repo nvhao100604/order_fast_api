@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.constants import RoleID
+from app.models.enum import OrderStatus
 from app.models.user import User
 from app.schemas.ordering import OrderCreate, OrderFilter, OrderResponse
 from app.schemas.response import ResponseSchema
@@ -115,4 +116,30 @@ async def get_order(
     return ResponseSchema[OrderResponse](
         data=order,
         message="Get order's information successfully."
+    )
+
+@router.patch(
+    "/{id}/status",
+    response_model=ResponseSchema[OrderResponse],
+    summary="Update Order Status",
+    description="Update the status of an existing order. Valid statuses include: PENDING, CONFIRMED, PREPARING, SHIPPING, COMPLETED, CANCELLED, UNPAID."
+)
+async def patch_order_status(
+    id: int = Path(..., ge=1, description="The ID of the order to update"),
+    new_status: OrderStatus = Query(..., description="The new status to set for the order"),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint cập nhật trạng thái đơn hàng.
+    Service sẽ tự động ném lỗi 404 nếu không tìm thấy đơn hàng.
+    """
+    updated_order = order_service.update_order_status(
+        db=db, 
+        order_id=id, 
+        new_status=new_status
+    )
+    
+    return ResponseSchema[OrderResponse](
+        data=updated_order,
+        message=f"Order status updated to {new_status.value} successfully."
     )
