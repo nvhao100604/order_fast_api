@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # --- General ---
     PROJECT_NAME: str
     ENVIRONMENT: str = "development"
+    FRONTEND_DOMAIN: str = "localhost"
 
     @computed_field
     @property

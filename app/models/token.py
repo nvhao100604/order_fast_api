@@ -14,7 +14,7 @@ class RefreshToken(Base):
     userAgent: Mapped[Optional[str]] = mapped_column("user_agent", String(255), nullable=True)
     expiresAt: Mapped[datetime] = mapped_column("expires_at", DateTime, nullable=False)
 
-    userID: Mapped[Optional[int]] = mapped_column(
+    userId: Mapped[Optional[int]] = mapped_column(
         "user_id", 
         ForeignKey("users.id", ondelete="CASCADE"), 
         nullable=True

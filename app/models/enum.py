@@ -5,23 +5,23 @@ import enum
 #     STAFF = "staff"
 #     CUSTOMER = "customer"
     
-class Status(enum.Enum):
+class Status(str, enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     BANNED = "banned"
 
-class DiscountCategory(enum.Enum):
+class DiscountCategory(str, enum.Enum):
     ORDER = "order"     
     DISH = "dish"      
     CUSTOMER = "customer"
 
-class TableStatus(enum.Enum):
+class TableStatus(str, enum.Enum):
     Empty = "Empty"
     Booked = "Booked"
     Deleted = "Deleted"
     Taken = "Taken"
 
-class OrderStatus(enum.Enum):
+class OrderStatus(str, enum.Enum):
     PENDING = "Pending"
     CONFIRMED = "Confirmed"
     PREPARING = "Preparing"

@@ -15,6 +15,7 @@ class Credential(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
+    roleId: int
+    type: str
+    iat: Optional[int] = None
     exp: Optional[int] = None
-    role: str
-    type: str 

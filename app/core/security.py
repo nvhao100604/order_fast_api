@@ -1,31 +1,31 @@
+import hashlib
+
+import bcrypt
 from realtime import Any, Union
 
 from app.core.config import get_settings
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.constants import TokenType
 
 SECRET_KEY = get_settings().SECRET_KEY
 ALGORITHM = get_settings().ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = get_settings().ACCESS_TOKEN_EXPIRE_MINUTES
-REFRESH_TOKEN_EXPIRE_DAYS = get_settings().REFRESH_TOKEN_EXPIRE_DAYS
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ACCESS_TOKEN_EXPIRE_MINUTES = get_settings().ACCESS_TOKEN_EXPIRE_MINUTES * 60
+REFRESH_TOKEN_EXPIRE_DAYS = get_settings().REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
 
 # CREATE TOKEN
-def create_token(subject: Union[str, Any], expected_type: str = TokenType.ACCESS) -> str:
+def create_token(subject: Union[str, Any], 
+    roleId: int,  
+    expires_delta: int,           
+    expected_type: str = TokenType.ACCESS,
+) -> str:
     now = datetime.now(timezone.utc)
 
-    if expected_type == TokenType.ACCESS:
-        expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    elif expected_type == TokenType.REFRESH:
-        expire = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    else:
-        raise ValueError("Invalid token type")
-
+    expire = now + timedelta(seconds=expires_delta)
     payload = {
         "sub": str(subject),
+        "roleId": roleId,
         "type": expected_type,
         "iat": now,     
         "exp": expire
@@ -58,8 +58,19 @@ def verify_token(token: str, expected_type: str = TokenType.ACCESS) -> dict:
 
 # HASH PASSWORD
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    prepared_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(prepared_password.encode('utf-8'), salt)
+    
+    return hashed.decode('utf-8')
 
 # VERIFY PASSWORD
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        prepared_password = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+        return bcrypt.checkpw(
+            prepared_password.encode('utf-8'), 
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        return False

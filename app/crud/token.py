@@ -5,33 +5,33 @@ from datetime import datetime, timedelta, timezone
 
 days = get_settings().REFRESH_TOKEN_EXPIRE_DAYS
 
-def create_refresh_token(db: Session, user_id: int, refresh_token: str, user_agent: str = None):
-    expires_at = datetime.now(timezone.utc) + timedelta(days=days)
+def create_refresh_token(db: Session, userId: int, refresh_token: str, userAgent: str = None):
+    expiresAt = datetime.now(timezone.utc) + timedelta(days=days)
     
     db_obj = RefreshToken(
-        user_id=user_id,
+        userId=userId,
         token=refresh_token,
-        user_agent=user_agent,
-        expires_at=expires_at
+        userAgent=userAgent,
+        expiresAt=expiresAt
     )
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     return db_obj
 
-def revoke_refresh_token(db: Session, token: str, user_id: int = None):
+def revoke_refresh_token(db: Session, token: str, userId: int = None):
     db.query(RefreshToken).filter(RefreshToken.token == token).delete()
-    clean_expired_tokens(db, user_id=user_id)
+    clean_expired_tokens(db, userId=userId)
     db.commit()
 
-def revoke_all_user_tokens(db: Session, user_id: int):
-    db.query(RefreshToken).filter(RefreshToken.userID == user_id).delete()
-    clean_expired_tokens(db, user_id=user_id)
+def revoke_all_user_tokens(db: Session, userId: int):
+    db.query(RefreshToken).filter(RefreshToken.userId == userId).delete()
+    clean_expired_tokens(db, userId=userId)
     db.commit()
 
-def clean_expired_tokens(db: Session, user_id: int = None):
+def clean_expired_tokens(db: Session, userId: int = None):
     db.query(RefreshToken).filter(
-        RefreshToken.userID == user_id,
+        RefreshToken.userId == userId,
         RefreshToken.expiresAt < datetime.now(timezone.utc)
     ).delete()
     db.commit()

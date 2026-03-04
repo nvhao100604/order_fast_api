@@ -1,8 +1,10 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.config import get_settings
 from app.schemas import ResponseSchema, TokenResponse, Credential, UserResponse, UserCreate
 from app.services import auth as auth_services 
 
@@ -12,21 +14,35 @@ private_router = APIRouter()
 # LOGIN
 @public_router.post(
     "/login",
-    response_model=ResponseSchema[TokenResponse],
+    response_model=TokenResponse,
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Login",
     description="Authenticate user and return access and refresh tokens.",
 )
-async def login(response: Response, credential: Credential, db : Session = Depends(get_db)):
-    response_data = auth_services.authenticate_user(credential=credential, db=db)
-    auth_services.set_refresh_token_cookie(response=response, refresh_token=response_data.refresh_token)
+async def login(
+    request: Request, 
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)):
 
-    return ResponseSchema[TokenResponse](
-        success=True,
-        message="Login successful",
-        data=response_data,
-        meta=None
+    tokens = auth_services.authenticate_user(
+        db=db, 
+        request=request, 
+        username=form_data.username, 
+        password=form_data.password
     )
+
+    auth_services.set_refresh_token_cookie(response=response, refresh_token=tokens.refresh_token)
+    # response.set_cookie(
+    #     key="refresh_token",
+    #     value=tokens.refresh_token,
+    #     httponly=True,  
+    #     secure=get_settings().ENVIRONMENT == "production",
+    #     samesite="lax",  
+    #     max_age=get_settings().REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 
+    # )
+
+    return tokens
 
 # LOGOUT
 @private_router.post(
@@ -49,14 +65,18 @@ async def logout(request: Request, response: Response, db: Session = Depends(get
     )
 
 # REFRESH TOKEN
-@private_router.post(
+@public_router.post(
     "/refresh-token",
     response_model=ResponseSchema[TokenResponse],
     summary="Refresh Token",
     description="Get a new access token using the refresh token from cookies."
 )
 async def refresh_token(request: Request, db: Session = Depends(get_db)):
+    print("=== REFRESH TOKEN CALLED ===")
+    print(f"All cookies: {request.cookies}")
     token_from_cookie = request.cookies.get("refresh_token")
+    print(f"Token: {token_from_cookie}")
+    
     if not token_from_cookie:
         raise HTTPException(status_code=401, detail="Refresh token missing")
 

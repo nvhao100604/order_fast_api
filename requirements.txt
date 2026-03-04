@@ -39,7 +39,6 @@ mmh3==5.2.0
 multidict==6.7.1
 orjson==3.11.5
 packaging==26.0
-passlib==1.7.4
 pluggy==1.6.0
 postgrest==2.27.2
 propcache==0.4.1

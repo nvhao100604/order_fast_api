@@ -16,7 +16,7 @@ class DishBase(BaseSchema):
     price: float
     imgUrl: str
     describe: str
-    status: int = DishStatus.IN_STOCK
+    status: str
     categoryID: int
 
 class DishResponse(DishBase):
