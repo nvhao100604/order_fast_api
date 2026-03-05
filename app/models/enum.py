@@ -1,27 +1,22 @@
-import enum
+from enum import Enum
 
-# class UserRole(enum.Enum):
-#     ADMIN = "admin"
-#     STAFF = "staff"
-#     CUSTOMER = "customer"
-    
-class Status(str, enum.Enum):
+class Status(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     BANNED = "banned"
 
-class DiscountCategory(str, enum.Enum):
+class DiscountCategory(str, Enum):
     ORDER = "order"     
     DISH = "dish"      
     CUSTOMER = "customer"
 
-class TableStatus(str, enum.Enum):
-    Empty = "Empty"
-    Booked = "Booked"
-    Deleted = "Deleted"
-    Taken = "Taken"
+class TableStatus(str, Enum):
+    EMPTY = "Empty"
+    OCCUPIED  = "Occupied"
+    DELETED = "Deleted"
+    RESERVED = "Reserved"
 
-class OrderStatus(str, enum.Enum):
+class OrderStatus(str, Enum):
     PENDING = "Pending"
     CONFIRMED = "Confirmed"
     PREPARING = "Preparing"
@@ -29,3 +24,9 @@ class OrderStatus(str, enum.Enum):
     COMPLETED = "Completed"
     CANCELLED = "Cancelled"
     UNPAID = "Pending Payment"
+
+class ReservationStatus(str, Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"

@@ -699,11 +699,11 @@ VALUES (
 CREATE TABLE `tables` (
     `id` int(3) NOT NULL,
     `status` enum(
-        'Empty',
+        'EMPTY',
         'Booked',
-        'Deleted',
+        'DELETED',
         'Taken'
-    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Empty'
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EMPTY'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 --
@@ -712,11 +712,11 @@ CREATE TABLE `tables` (
 
 INSERT INTO
     `tables` (`id`, `status`)
-VALUES (1, 'Empty'),
-    (2, 'Empty'),
-    (3, 'Empty'),
-    (4, 'Empty'),
-    (5, 'Empty'),
+VALUES (1, 'EMPTY'),
+    (2, 'EMPTY'),
+    (3, 'EMPTY'),
+    (4, 'EMPTY'),
+    (5, 'EMPTY'),
     (6, 'Booked'),
     (7, 'Taken');
 

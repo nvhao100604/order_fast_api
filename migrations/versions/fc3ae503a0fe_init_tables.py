@@ -49,7 +49,7 @@ def upgrade() -> None:
     sa.Column('number', sa.Integer(), nullable=False),
     sa.Column('min_capacity', sa.Integer(), nullable=False),
     sa.Column('max_capacity', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('Empty', 'Booked', 'Deleted', 'Taken', name='tablestatus'), nullable=False),
+    sa.Column('status', sa.Enum('EMPTY', 'Booked', 'DELETED', 'Taken', name='tablestatus'), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('createdAt', sa.DateTime(timezone=True), nullable=False),
     sa.CheckConstraint('max_capacity >= min_capacity', name='check_max_ge_min'),
