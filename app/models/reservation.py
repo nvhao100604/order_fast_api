@@ -72,9 +72,7 @@ class Reservation(Base):
         nullable=True,
     )
 
-    user: Mapped[Optional["User"]] = relationship(
-        back_populates="reservations"
-    )
+    user: Mapped["User"] = relationship("User", back_populates="reservations")
 
     tableID: Mapped[Optional[int]] = mapped_column(
         "table_id",
@@ -82,6 +80,8 @@ class Reservation(Base):
         nullable=True,
     )
 
+    # Thay vì chỉ có back_populates
     table: Mapped[Optional["Table"]] = relationship(
+        "Table", 
         back_populates="reservations"
     )

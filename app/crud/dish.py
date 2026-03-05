@@ -10,6 +10,7 @@ def get_all_dishes(db: Session, skip: int = 0, limit: int = 10):
 
 def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     """Truy vấn danh sách món ăn từ DB có hỗ trợ phân trang"""
+    print("HAVE ACCESSED")
     query = db.query(Dish)
 
     if "categoryID" in filters:

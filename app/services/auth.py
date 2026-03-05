@@ -17,6 +17,8 @@ def authenticate_user(
     password: str = None,
     credential: Credential = None
 ) -> TokenResponseRefresh:
+    
+    print("ACCESSED LOGIN")
     # Hỗ trợ cả hai nguồn: từ Schema JSON hoặc từ Form của Swagger
     login_username = username or (credential.username if credential else None)
     login_password = password or (credential.password if credential else None)

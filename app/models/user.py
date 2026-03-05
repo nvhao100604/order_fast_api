@@ -58,9 +58,7 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
 
-    reservations: Mapped[List["Reservation"]] = relationship(
-    back_populates="user"
-)
+    reservations: Mapped[list["Reservation"]] = relationship("Reservation", back_populates="user")
 
 class Discount(Base):
     __tablename__ = "discount"
