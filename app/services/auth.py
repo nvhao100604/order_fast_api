@@ -132,7 +132,7 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
         samesite=samesite_val,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
         path="/",
-        domain=None
+        domain=cookie_domain
     )
 
 # CREATE NEW USER
