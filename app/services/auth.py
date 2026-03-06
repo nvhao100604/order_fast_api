@@ -105,15 +105,31 @@ def refresh_access_token(refresh_token: str, db: Session) -> TokenResponseRefres
 
 # SET REFRESH TOKEN COOKIE
 def set_refresh_token_cookie(response: Response, refresh_token: str):
+    settings = get_settings()
+    is_production = settings.ENVIRONMENT == "production"
+    
+    # 1. Xử lý Domain
+    if not is_production:
+        # Ở localhost, để domain=None giúp trình duyệt tự hiểu phạm vi là máy khách
+        cookie_domain = None
+    else:
+        # Ở production, làm sạch domain như đã thảo luận
+        cookie_domain = settings.FRONTEND_DOMAIN.replace("https://", "").replace("http://", "").split("/")[0]
+
+    # 2. Xử lý SameSite và Secure
+    # Local: Lax + False | Production: None + True
+    samesite_val = "none" if is_production else "lax"
+    secure_val = True if is_production else False
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=get_settings().ENVIRONMENT == "production",
-        samesite="lax",
-        max_age=get_settings().REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        secure=secure_val,
+        samesite=samesite_val,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
         path="/",
-        domain=get_settings().FRONTEND_DOMAIN
+        domain=cookie_domain
     )
 
 # CREATE NEW USER
