@@ -34,15 +34,16 @@ def get_orders(
 
 def post_order(
     db: Session,
-    order: OrderCreate
+    order_in: OrderCreate
 ):
-    if len(order.details) <= 0:
+    if len(order_in.details) <= 0:
         raise ValueError("Order must contain at least one dish (details cannot be empty)!")
-    p = order
+    p = order_in
     if (p.tax + p.subtotal + p.delivery) != p.totalPrice:
         raise ValueError("The sum of itemized costs does not match the total price provided.")
+    
     # dump order data for crud
-    order_data = order.model_dump()
+    order_data = order_in.model_dump()
     details_data = order_data.pop("details")
 
     cleaned_details = []
@@ -58,13 +59,13 @@ def post_order(
             "price": d["price"]
         })
 
-    price_info = order_data.pop("totalPrice")
-    order_data.update({
-        "tax":price_info["tax"],
-        "subtotal":price_info["subtotal"],
-        "delivery":price_info["delivery"],
-        "totalPrice": price_info["total"]
-    })
+    # price_info = order_data.pop("totalPrice")
+    # order_data.update({
+    #     "tax":price_info["tax"],
+    #     "subtotal":price_info["subtotal"],
+    #     "delivery":price_info["delivery"],
+    #     "totalPrice": price_info["total"]
+    # })
 
 
     order_in = Order(**order_data)

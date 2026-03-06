@@ -72,17 +72,16 @@ async def post_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    order_dict = order_data.model_dump()
-
     if current_user.roleID == RoleID.CUSTOMER:
         # Nếu là khách: Ghi đè customerID bằng ID của chính họ để tránh đặt hộ người khác
-        order_dict["customerID"] = current_user.id
+        order_data.customerID = current_user.id
+        order_data.staffID = 1
     else:
         # Nếu là Staff/Admin: Lấy customerID từ data gửi lên (để tạo đơn hộ khách)
-        if not order_dict.get("customerID"):
+        if not order_data.customerID:
             raise HTTPException(status_code=400, detail="This action need the customerID.")
 
-    new_order = order_service.post_order(db=db, order_in=order_dict)
+    new_order = order_service.post_order(db=db, order_in=order_data)
     
     return ResponseSchema[OrderResponse](
         message="Create the order successfully.",

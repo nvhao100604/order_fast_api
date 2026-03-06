@@ -48,7 +48,7 @@ class OrderPricing(BaseSchema):
 # --- Order Schemas ---
 
 class OrderCreate(BaseSchema):
-    staffID: int
+    staffID: Optional[int] = None
     customerID: int
     tableID: Optional[int] = None
     discountID: Optional[int] = None

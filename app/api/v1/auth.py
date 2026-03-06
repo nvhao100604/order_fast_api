@@ -34,14 +34,6 @@ async def login(
     )
 
     auth_services.set_refresh_token_cookie(response=response, refresh_token=tokens.refresh_token)
-    # response.set_cookie(
-    #     key="refresh_token",
-    #     value=tokens.refresh_token,
-    #     httponly=True,  
-    #     secure=get_settings().ENVIRONMENT == "production",
-    #     samesite="lax",  
-    #     max_age=get_settings().REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 
-    # )
 
     return tokens
 

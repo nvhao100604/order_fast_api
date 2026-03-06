@@ -110,13 +110,10 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
     
     # 1. Xử lý Domain
     if not is_production:
-        # Ở localhost, để domain=None giúp trình duyệt tự hiểu phạm vi là máy khách
         cookie_domain = None
     else:
-        # Ở production, làm sạch domain như đã thảo luận
         cookie_domain = settings.FRONTEND_DOMAIN.replace("https://", "").replace("http://", "").split("/")[0]
 
-    # 2. Xử lý SameSite và Secure
     # Local: Lax + False | Production: None + True
     samesite_val = "none" if is_production else "lax"
     secure_val = True if is_production else False
@@ -132,38 +129,33 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
         samesite=samesite_val,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
         path="/",
-        domain=cookie_domain
+        domain=None
     )
 
 # CREATE NEW USER
 def create_new_user(db: Session, user_data: UserCreate, is_admin_creating: bool = False):
-    # 1. Kiểm tra Username
     if user_crud.get_user_by_username(db, user_data.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Username has used"
         )
     
-    # 2. Kiểm tra Email
     if user_crud.get_user_by_email(db, user_data.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Email has used"
         )
         
-    # 3. Kiểm tra Số điện thoại
     if user_crud.get_user_by_phone(db, user_data.phoneNumber):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Phone number has used"
         )
     
-    # 4. Băm mật khẩu (Security)
     hashed_password = get_password_hash(user_data.password)
     
     user_dict = user_data.model_dump(exclude={"password"})
     
-    # 5. CHỐT CHẶN BẢO MẬT:
     if not is_admin_creating:
         # Nếu là khách tự đăng ký qua /register, luôn ép roleID = 3
         user_dict["roleID"] = 3 
