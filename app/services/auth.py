@@ -121,6 +121,9 @@ def set_refresh_token_cookie(response: Response, refresh_token: str):
     samesite_val = "none" if is_production else "lax"
     secure_val = True if is_production else False
 
+    print(f"samesite check: {samesite_val}" )
+    print(f"secure check: {secure_val}" )
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
