@@ -1,4 +1,5 @@
 from datetime import datetime
+import string
 from typing import List, Optional
 from pydantic import Field
 
@@ -91,3 +92,5 @@ class OrderFilter(BaseSchema):
     tableID: Optional[int] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    customer_search: Optional[str] = None
+    staff_search: Optional[str] = None

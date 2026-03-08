@@ -1,11 +1,30 @@
 from typing import List
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.models.ordering import Order, OrderDetail
 from sqlalchemy.orm import Session
+
+from app.models.user import User
 
 def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     query = db.query(Order)
     
+    if filters.get("customer_search"):
+        search_val = f"%{filters['customer_search']}%"
+        query = query.join(Order.customer).filter(
+            or_(
+                func.unaccent(User.name).ilike(func.unaccent(search_val)),
+                User.phoneNumber.ilike(search_val)
+            )
+        )
+
+    if filters.get("staff_search"):
+        search_val = f"%{filters['staff_search']}%"
+        query = query.join(Order.staff).filter(
+            or_(
+                func.unaccent(User.name).ilike(func.unaccent(search_val)),
+                User.phoneNumber.ilike(search_val)
+            )
+        )
     if "staffID" in filters:
         query = query.filter(Order.staffID == filters["staffID"])
 

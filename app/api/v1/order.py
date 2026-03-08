@@ -18,37 +18,24 @@ router = APIRouter(
 @router.get(
     "",
     response_model=ResponseSchema[List[OrderResponse]],
-    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model" : ResponseSchema}},
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema}},
     summary="Get orders with pagination",
     description="Get a paginated list of orders from the database."
 )
 async def get_orders(
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1),
+    limit: int = Query(10),
     filters: OrderFilter = Depends(),
     current_user: User = Depends(get_current_user)
 ):
-    filters_dict = filters.model_dump(exclude={"staffID", "customerID"})
-
-    if current_user.roleID == RoleID.CUSTOMER:
-        filters_dict["customerId"] = current_user.id
-
-    elif current_user.roleID == RoleID.STAFF:
-        filters_dict["customer_id"] = filters.customerID
-        if filters.staffID:
-            filters_dict["staff_id"] = filters.staffID
-
-    elif current_user.roleID == RoleID.ADMIN:
-        filters_dict["customer_id"] = filters.customerID
-        filters_dict["staff_id"] = filters.staffID
-    
     orders, total = order_service.get_orders(
-        db=db, 
-        page=page, 
-        limit=limit, 
-        filters=filters_dict, 
-        current_user=current_user)
+        db=db,
+        page=page,
+        limit=limit,
+        filters=filters,          
+        current_user=current_user
+    )
 
     return ResponseSchema[List[OrderResponse]](
         data=orders,
@@ -126,16 +113,19 @@ async def get_order(
 async def patch_order_status(
     id: int = Path(..., ge=1, description="The ID of the order to update"),
     new_status: OrderStatus = Query(..., description="The new status to set for the order"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_staff: User = Depends(get_current_user)
 ):
     """
     Endpoint cập nhật trạng thái đơn hàng.
     Service sẽ tự động ném lỗi 404 nếu không tìm thấy đơn hàng.
     """
+    print(f"status: {new_status}")
     updated_order = order_service.update_order_status(
         db=db, 
         order_id=id, 
-        new_status=new_status
+        new_status=new_status,
+        current_staff=current_staff
     )
     
     return ResponseSchema[OrderResponse](

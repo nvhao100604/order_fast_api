@@ -45,6 +45,7 @@ def authenticate_user(
         )
     
     # 3. Tạo access token và refresh token
+    print(f"access minute={ACCESS_TOKEN_EXPIRE_MINUTES}")
     access_token = create_token(
         subject=user.id, 
         roleId=user.roleID,

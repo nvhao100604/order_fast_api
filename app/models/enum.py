@@ -1,29 +1,29 @@
 from enum import Enum
 
 class Status(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    BANNED = "banned"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    BANNED = "BANNED"
 
 class DiscountCategory(str, Enum):
-    ORDER = "order"     
-    DISH = "dish"      
-    CUSTOMER = "customer"
+    ORDER = "ORDER"     
+    DISH = "DISH"      
+    CUSTOMER = "CUSTOMER"
 
 class TableStatus(str, Enum):
-    EMPTY = "Empty"
-    OCCUPIED  = "Occupied"
-    DELETED = "Deleted"
-    RESERVED = "Reserved"
+    EMPTY = "EMPTY"
+    OCCUPIED  = "OCCUPIED"
+    DELETED = "DELETED"
+    RESERVED = "RESERVED"
 
 class OrderStatus(str, Enum):
-    PENDING = "Pending"
-    CONFIRMED = "Confirmed"
-    PREPARING = "Preparing"
-    SHIPPING ="Out for Delivery"
-    COMPLETED = "Completed"
-    CANCELLED = "Cancelled"
-    UNPAID = "Pending Payment"
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    PREPARING = "PREPARING"
+    SHIPPING ="SHIPPING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    UNPAID = "UNPAID"
 
 class ReservationStatus(str, Enum):
     PENDING = "PENDING"

@@ -39,7 +39,6 @@ def get_dishes(db: Session, filters: dict, skip: int = 0, limit: int = 10):
         query = query.filter(Dish.createdAt <= filters["end_date"])
 
     query = query.order_by(Dish.createdAt.desc())
-
     total = query.count()
     dishes = query.offset(skip).limit(limit).all()
     
