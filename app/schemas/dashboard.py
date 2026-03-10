@@ -6,9 +6,6 @@ class TopDishResponse(BaseSchema):
     name: str
     count: int
 
-    class Config:
-        from_attributes = True
-
 class DashboardDataResponse(BaseSchema):
     # Guests
     todayGuests: int
