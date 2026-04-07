@@ -10,6 +10,7 @@ from app.schemas.ordering import OrderCreate, OrderFilter, OrderResponse
 from app.schemas.response import ResponseSchema
 from app.services import order as order_service
 from app.api.deps import allow_all
+from app.core.websocket import manager
 
 router = APIRouter(
     dependencies=[Depends(allow_all)]
@@ -69,7 +70,14 @@ async def post_order(
             raise HTTPException(status_code=400, detail="This action need the customerID.")
 
     new_order = order_service.post_order(db=db, order_in=order_data)
-    
+
+    await manager.broadcast({
+        "type": "NEW_ORDER",
+        "order_id": new_order.id,
+        "customer_name": current_user.name,
+        "message": f"Have new order from {new_order.tableID}!"
+    })
+
     return ResponseSchema[OrderResponse](
         message="Create the order successfully.",
         data=new_order
@@ -128,6 +136,13 @@ async def patch_order_status(
         current_staff=current_staff
     )
     
+    await manager.broadcast({
+        "type": "STATUS_UPDATED",
+        "order_id": id,
+        "new_status": new_status.value,
+        "message": f"Order with id: #{id} turned to new status: {new_status.value}"
+    })
+
     return ResponseSchema[OrderResponse](
         data=updated_order,
         message=f"Order status updated to {new_status.value} successfully."

@@ -1,6 +1,6 @@
-from typing import Generator
+from typing import Generator, Optional
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query, WebSocket
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.constants import RoleID
@@ -86,3 +86,39 @@ allow_all = RoleChecker([RoleID.ADMIN, RoleID.STAFF, RoleID.CUSTOMER])
 #         raise HTTPException(status_code=403, detail="Only admin users are allowed to access this resource.")
 #     return current_user
 
+async def get_current_user_ws(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Query(None) 
+):
+    """
+    Dependency dành riêng cho WebSocket. 
+    Lấy token từ Query Parameter thay vì Authorization Header.
+    """
+    if not token:
+        # Nếu không có token, FastAPI sẽ tự đóng kết nối WebSocket
+        raise HTTPException(
+            status_code=status.WS_1008_POLICY_VIOLATION, 
+            detail="Token missing"
+        )
+
+    payload = verify_token(token, expected_type="access")
+    if not payload:
+        raise HTTPException(
+            status_code=status.WS_1008_POLICY_VIOLATION, 
+            detail="Invalid or expired token"
+        )
+
+    return _get_user_from_payload(db, payload)
+
+# Hàm bổ trợ để tránh lặp code (DRY)
+def _get_user_from_payload(db: Session, payload: dict) -> User:
+    try:
+        token_data = TokenPayload(**payload)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token format")
+
+    user = user_crud.get_user_by_id(db, user_id=token_data.sub)
+    if not user or user.status != Status.ACTIVE:
+        raise HTTPException(status_code=403, detail="User inactive or not found")
+    
+    return user
