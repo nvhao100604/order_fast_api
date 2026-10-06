@@ -10,6 +10,14 @@ jobs:
   test:
     name: Run Unit Tests & API Validation
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: restaurant_db
+      PROJECT_NAME: order_fast_api
+      SECRET_KEY: testsecretkey1234567890
 
     steps:
       - name: Checkout Code

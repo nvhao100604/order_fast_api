@@ -10,24 +10,25 @@ class Settings(BaseSettings):
         case_sensitive=True
     )
 
-    POSTGRES_USER: str
+    POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = ""
-    POSTGRES_SERVER: str
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str
+    POSTGRES_DB: str = "restaurant_db"
 
     # --- Supabase ---
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     
     # --- Security ---
-    SECRET_KEY: str = "" 
+    SECRET_KEY: str = "test-secret-key-1234567890" 
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # --- General ---
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "order_fast_api"
+
     ENVIRONMENT: str = "development"
     FRONTEND_DOMAIN: str = "localhost"
 
