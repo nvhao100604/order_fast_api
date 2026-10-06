@@ -12,10 +12,14 @@ class TableBase(BaseSchema):
     number: int
     minCapacity: int
     maxCapacity: int
-    status: TableStatus
+    status: TableStatus = TableStatus.EMPTY
+
+class TableCreate(TableBase):
+    pass
 
 class TableResponse(TableBase):
     id: int
+
 
 class TableUpdate(BaseSchema):
     number: Optional[int]

@@ -30,3 +30,12 @@ class ReservationResponse(ReservationBase):
     tableID: Optional[int]
     createdAt: datetime
     updatedAt: datetime
+
+class ReservationFilter(BaseSchema):
+    status: Optional[ReservationStatus] = None
+    email: Optional[str] = None
+    phoneNumber: Optional[str] = None
+    userID: Optional[int] = None
+    tableID: Optional[int] = None
+    startDate: Optional[datetime] = None
+    endDate: Optional[datetime] = None

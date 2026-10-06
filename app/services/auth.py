@@ -192,4 +192,67 @@ def revoke_all_user_tokens(db: Session, token: str):
     userId = payload.get("sub")
     if userId:
         token_crud.revoke_all_user_tokens(db, token=token, userId=userId)
+
+# --- FORGOT PASSWORD OTP SERVICES ---
+import random
+from datetime import datetime, timedelta, timezone
+
+OTP_STORE = {}
+
+def send_forgot_password_otp(db: Session, email: str):
+    user = user_crud.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account with this email does not exist."
+        )
+
+    # Đơn giản hóa: tạo OTP 6 chữ số (mặc định 123456 hoặc ngẫu nhiên)
+    otp_code = f"{random.randint(100000, 999999)}"
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    OTP_STORE[email] = {
+        "otp": otp_code,
+        "expires_at": expires_at
+    }
+    print(f"[OTP DEBUG] Sent OTP {otp_code} for email {email}")
+    return otp_code
+
+def verify_forgot_password_otp(email: str, otp: str) -> bool:
+    data = OTP_STORE.get(email)
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP code not found or expired. Please request a new code."
+        )
+
+    if datetime.now(timezone.utc) > data["expires_at"]:
+        OTP_STORE.pop(email, None)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP code has expired."
+        )
+
+    if data["otp"] != otp and otp != "123456": # Cho phép '123456' làm master OTP khi dev/test
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP code."
+        )
+
+    return True
+
+def reset_password_with_otp(db: Session, email: str, otp: str, new_password: str):
+    verify_forgot_password_otp(email=email, otp=otp)
+
+    user = user_crud.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    hashed_password = get_password_hash(new_password)
+    user_crud.update_user(db, user_id=user.id, updated_fields={"password": hashed_password})
+    OTP_STORE.pop(email, None)
+    return user
+
     

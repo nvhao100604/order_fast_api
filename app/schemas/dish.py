@@ -25,20 +25,23 @@ class DishResponse(DishBase):
     createdAt: datetime
     updatedAt: datetime
 
+from pydantic import Field, AliasChoices
+
 class DishCreate(BaseSchema):
     name: str = Field(..., min_length=3, max_length=100, description="Dish name")
     price: float = Field(..., ge=0, description="Price must be non-negative")
     imgUrl: Optional[str] = Field(None, description="Dish image URL")
     describe: Optional[str] = Field(None, max_length=500, description="Dish description")
-    categoryID: int = Field(..., ge=1, description="ID of category")
+    categoryID: int = Field(..., ge=1, validation_alias=AliasChoices('categoryID', 'categoryId'), description="ID of category")
 
 class DishUpdate(BaseSchema):
     name: Optional[str] = Field(None, min_length=3, max_length=100)
     price: Optional[float] = Field(None, ge=0)
     imgUrl: Optional[str] = None
     describe: Optional[str] = None
-    categoryID: Optional[int] = None 
+    categoryID: Optional[int] = Field(None, validation_alias=AliasChoices('categoryID', 'categoryId'))
     status: Optional[str] = None
+
 
 class DishFilter(BaseSchema):
     name: Optional[str] = None

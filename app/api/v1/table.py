@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.api.deps import get_db
-from app.schemas.ordering import TableResponse, TableStatus
+from app.schemas.ordering import TableResponse, TableStatus, TableCreate
 from app.schemas.response import ResponseSchema
 from app.services import table as table_service
 
@@ -48,6 +48,25 @@ async def get_table(
         message=f"Get table successfully with id: {id}"
     )
 
+@private_router.post(
+    "",
+    response_model=ResponseSchema[TableResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new table",
+    description="Add a new dining table to the restaurant."
+)
+async def post_table(
+    table_data: TableCreate,
+    db: Session = Depends(get_db)
+):
+    new_table = table_service.create_table_service(db, table_data)
+    return ResponseSchema[TableResponse](
+        success=True,
+        data=new_table,
+        message="Create table successfully"
+    )
+
+
 @private_router.patch(
     "/{id}/status",
     response_model=ResponseSchema[TableResponse],
@@ -71,6 +90,13 @@ async def patch_table_status(
     summary="Partially Update Table Info",
     description="Update specific fields of a table such as its number or capacity."
 )
+@private_router.put(
+    "/{id}",
+    response_model=ResponseSchema[TableResponse],
+    summary="Update Table Info (PUT)",
+    description="Update specific fields of a table such as its number or capacity."
+)
+
 async def patch_table(
     id: int = Path(..., ge=1),
     update_data: dict = {}, 

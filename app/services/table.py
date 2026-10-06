@@ -2,6 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.crud import table as table_crud
 from app.models.enum import OrderStatus
+from app.models.ordering import Table
+
 
 def get_tables(
     db: Session,
@@ -15,6 +17,18 @@ def get_tables(
         
     skip = (page - 1) * limit    
     return table_crud.get_tables(db, filters=filters, skip=skip, limit=limit)
+
+def create_table_service(db: Session, data) -> Table:
+    """Tạo bàn ăn mới"""
+    from app.models.ordering import Table
+    new_table = Table(
+        number=data.number,
+        minCapacity=data.minCapacity,
+        maxCapacity=data.maxCapacity,
+        status=data.status
+    )
+    return table_crud.post_table(db, new_table)
+
 
 def get_table(db: Session, table_id: int):
     """
