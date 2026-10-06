@@ -18,6 +18,9 @@ jobs:
       POSTGRES_DB: restaurant_db
       PROJECT_NAME: order_fast_api
       SECRET_KEY: testsecretkey1234567890
+      SUPABASE_URL: "https://placeholder.supabase.co"
+      SUPABASE_KEY: "placeholder-key"
+
 
     steps:
       - name: Checkout Code

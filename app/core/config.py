@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "restaurant_db"
 
     # --- Supabase ---
-    SUPABASE_URL: str = ""
-    SUPABASE_KEY: str = ""
+    SUPABASE_URL: str = "https://placeholder.supabase.co"
+    SUPABASE_KEY: str = "placeholder-key"
+
     
     # --- Security ---
     SECRET_KEY: str = "test-secret-key-1234567890" 
