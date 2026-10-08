@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float, String, ForeignKey, Integer, Enum as SQLEnum
+from sqlalchemy import Boolean, CheckConstraint, Float, String, ForeignKey, Integer, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from typing import TYPE_CHECKING, List, Optional
@@ -9,15 +9,23 @@ if TYPE_CHECKING:
     from .user import User, Discount
     from .catalog import Dish
     from .reservation import Reservation
+    from .layout import Area, FloorItem
 
 class Table(Base):
     __tablename__ = "tables"
 
     number: Mapped[int] = mapped_column(Integer, unique=True)
+    name: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     
     minCapacity: Mapped[int] = mapped_column("min_capacity", Integer, nullable=False)
+    seats: Mapped[int] = mapped_column(Integer, default=2, server_default="2", nullable=False)
     maxCapacity: Mapped[int] = mapped_column("max_capacity", Integer, nullable=False)
     
+    areaID: Mapped[Optional[int]] = mapped_column("area_id", ForeignKey("areas.id", ondelete="SET NULL"), nullable=True)
+    clusterKey: Mapped[Optional[str]] = mapped_column("cluster_key", String(8), nullable=True)
+    isFixed: Mapped[bool] = mapped_column("is_fixed", Boolean, default=False, server_default="false", nullable=False)
+    walkInOnly: Mapped[bool] = mapped_column("walk_in_only", Boolean, default=False, server_default="false", nullable=False)
+
     status: Mapped[TableStatus] = mapped_column(
         SQLEnum(TableStatus),
         default=TableStatus.EMPTY,
@@ -25,6 +33,8 @@ class Table(Base):
     )
     
     orders: Mapped[List["Order"]] = relationship(back_populates="table")
+    area: Mapped[Optional["Area"]] = relationship("Area", back_populates="tables")
+    floorItem: Mapped[Optional["FloorItem"]] = relationship("FloorItem", back_populates="table", uselist=False)
 
     __table_args__ = (
         CheckConstraint("min_capacity > 0", name="check_min_capacity_positive"),
@@ -32,8 +42,9 @@ class Table(Base):
     )
 
     reservations: Mapped[List["Reservation"]] = relationship(
-    back_populates="table"
-)
+        back_populates="table"
+    )
+
 
 class Order(Base):
     __tablename__ = "orders"
