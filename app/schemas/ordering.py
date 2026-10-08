@@ -7,28 +7,67 @@ from app.schemas.dish import DishDetail
 from .base import BaseSchema
 from app.models.enum import OrderStatus, TableStatus
 
+from pydantic import Field, field_validator
+
 # --- Table Schemas ---
 class TableBase(BaseSchema):
     number: int
-    minCapacity: int
-    maxCapacity: int
+    name: Optional[str] = None
+    minCapacity: int = 1
+    seats: int = 2
+    maxCapacity: int = 2
+    areaId: Optional[int] = None
+    clusterKey: Optional[str] = None
+    isFixed: bool = False
+    walkInOnly: bool = False
     status: TableStatus = TableStatus.EMPTY
+
+    @field_validator("seats")
+    @classmethod
+    def validate_seats(cls, v: int) -> int:
+        if v < 2 or v > 10 or v % 2 != 0:
+            raise ValueError("seats must be an even number between 2 and 10")
+        return v
+
+    @field_validator("maxCapacity")
+    @classmethod
+    def validate_capacity_bounds(cls, max_cap: int, info) -> int:
+        data = info.data
+        min_cap = data.get("minCapacity", 1)
+        seats = data.get("seats", 2)
+        if min_cap < 1:
+            raise ValueError("minCapacity must be >= 1")
+        if min_cap > seats:
+            raise ValueError("minCapacity must be <= seats")
+        if seats > max_cap:
+            raise ValueError("seats must be <= maxCapacity")
+        if max_cap > 10:
+            raise ValueError("maxCapacity cannot exceed 10")
+        return max_cap
 
 class TableCreate(TableBase):
     pass
 
 class TableResponse(TableBase):
     id: int
+    displayStatus: Optional[str] = None
 
 
 class TableUpdate(BaseSchema):
-    number: Optional[int]
-    minCapacity: Optional[int]
-    maxCapacity: Optional[int]
-    status: Optional[TableStatus]
+    number: Optional[int] = None
+    name: Optional[str] = None
+    minCapacity: Optional[int] = None
+    seats: Optional[int] = None
+    maxCapacity: Optional[int] = None
+    areaId: Optional[int] = None
+    clusterKey: Optional[str] = None
+    isFixed: Optional[bool] = None
+    walkInOnly: Optional[bool] = None
+    status: Optional[TableStatus] = None
 
 class TableFilter(TableUpdate):
     pass
+
 
 # --- Order Detail Schemas ---
 
