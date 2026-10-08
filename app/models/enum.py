@@ -14,7 +14,21 @@ class TableStatus(str, Enum):
     EMPTY = "EMPTY"
     OCCUPIED  = "OCCUPIED"
     DELETED = "DELETED"
-    RESERVED = "RESERVED"
+    RESERVED = "RESERVED"  # DEPRECATED: Do not write RESERVED into DB anymore; compute dynamically in API displayStatus
+    PAYING = "PAYING"
+    CLEANING = "CLEANING"
+
+class FloorItemKind(str, Enum):
+    TABLE = "TABLE"
+    PILLAR = "PILLAR"
+    BAR = "BAR"
+    DOOR = "DOOR"
+    STAIRS = "STAIRS"
+
+class TableShape(str, Enum):
+    SQUARE = "SQUARE"
+    ROUND = "ROUND"
+    LONG = "LONG"
 
 class OrderStatus(str, Enum):
     PENDING = "PENDING"
