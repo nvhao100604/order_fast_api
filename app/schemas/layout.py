@@ -35,7 +35,8 @@ class FloorItemCreate(FloorItemBase):
 
 class FloorItemResponse(FloorItemBase):
     id: int
-    areaId: int
+    areaID: int
+
 
 class LayoutPayload(BaseSchema):
     layoutVersion: int

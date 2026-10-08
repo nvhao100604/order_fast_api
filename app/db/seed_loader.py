@@ -7,12 +7,12 @@ from typing import List, Dict, Any, Type, Callable
 from app.db.session import SessionLocal
 from app.db.base import Base
 from app.models import (
-    Role, Staff, Category, Dish, 
-    Table, Customer, Order, OrderDetail, 
+    Role, User, Category, Dish, 
+    Table, Order, OrderDetail, 
     Review, Discount
 )
-from app.models.customer import DiscountCategory
-from app.models.ordering import TableStatus, OrderStatus
+from app.models.enum import DiscountCategory, TableStatus, OrderStatus
+
 
 # =========================
 # CẤU HÌNH ĐƯỜNG DẪN
@@ -85,50 +85,125 @@ def _rows_to_dicts(columns: str, rows: List[List[str]]) -> List[Dict[str, str]]:
 # =========================
 def load_from_sql_generic(sql_content: str, table_name: str, model_class: Type) -> List[Any]:
     items = []
+    # Lookup dictionaries for column and attribute names
+    attr_by_name = {}
+    if hasattr(model_class, "__mapper__"):
+        for attr in model_class.__mapper__.column_attrs:
+            attr_by_name[attr.key] = attr.key
+            for col in attr.columns:
+                attr_by_name[col.name] = attr.key
+
+    # Legacy SQL column aliases for specific tables
+    if table_name == "reviews":
+        attr_by_name["customerID"] = "userID"
+        attr_by_name["customer_id"] = "userID"
+
     for match in INSERT_RE.finditer(sql_content):
         if match.group(1).lower() != table_name.lower():
             continue
 
         records = _rows_to_dicts(match.group(2), _parse_insert_values(match.group(3)))
-        model_columns = model_class.__table__.columns.keys()
         
         for r in records:
             processed_data = {}
-            for key, val in r.items():
-                if key in model_columns:
+            for raw_key, val in r.items():
+                if raw_key in attr_by_name:
+                    attr_key = attr_by_name[raw_key]
                     # Làm sạch chuỗi: xóa dấu nháy và khoảng trắng thừa
                     val_str = val.strip("'").strip() 
                     
                     # --- XỬ LÝ ENUM TẬP TRUNG ---
                     # 1. Xử lý cột 'status' cho bảng orders và tables
-                    if key == "status":
+                    if attr_key == "status":
                         if table_name == "orders":
-                            processed_data[key] = OrderStatus(val_str)
+                            order_status_map = {
+                                "Pending confirmation": OrderStatus.PENDING,
+                                "Pending": OrderStatus.PENDING,
+                                "Confirmed": OrderStatus.CONFIRMED,
+                                "Preparing": OrderStatus.PREPARING,
+                                "Shipping": OrderStatus.SHIPPING,
+                                "Completed": OrderStatus.COMPLETED,
+                                "Cancelled": OrderStatus.CANCELLED,
+                                "Unpaid": OrderStatus.UNPAID,
+                            }
+                            processed_data[attr_key] = order_status_map.get(val_str) or OrderStatus(val_str.upper())
                         elif table_name == "tables":
-                            processed_data[key] = TableStatus(val_str)
+                            status_map = {"Booked": TableStatus.RESERVED, "Taken": TableStatus.OCCUPIED}
+                            processed_data[attr_key] = status_map.get(val_str) or TableStatus(val_str)
                         else:
-                            processed_data[key] = val_str
+                            processed_data[attr_key] = val_str
+
                             
                     # 2. Xử lý cột 'category' cho bảng discount
-                    elif key == "category" and table_name == "discount":
-                        # Ép kiểu từ 'order' (string) sang DiscountCategory.ORDER (Enum)
-                        # Nếu DB lưu hoa (ORDER), dùng val_str.upper() nếu cần
+                    elif attr_key == "category" and table_name == "discount":
                         try:
-                            processed_data[key] = DiscountCategory(val_str)
+                            processed_data[attr_key] = DiscountCategory(val_str)
                         except ValueError:
-                            # Phòng trường hợp SQL là 'order' nhưng Enum định nghĩa là 'ORDER'
-                            processed_data[key] = DiscountCategory(val_str.upper())
+                            processed_data[attr_key] = DiscountCategory(val_str.upper())
                     
                     # --- XỬ LÝ CÁC KIỂU DỮ LIỆU KHÁC ---
                     elif val_str.upper() == "NULL":
-                        processed_data[key] = None
-                    elif key in TYPE_CONVERTERS:
-                        processed_data[key] = TYPE_CONVERTERS[key](val_str)
+                        processed_data[attr_key] = None
+                    elif attr_key in TYPE_CONVERTERS:
+                        processed_data[attr_key] = TYPE_CONVERTERS[attr_key](val_str)
+                    elif raw_key in TYPE_CONVERTERS:
+                        processed_data[attr_key] = TYPE_CONVERTERS[raw_key](val_str)
                     else:
-                        processed_data[key] = val_str
-            
+                        processed_data[attr_key] = val_str
+
+            # If table is 'tables' and fields are missing, set defaults
+            if table_name == "tables":
+                if "number" not in processed_data or processed_data["number"] is None:
+                    processed_data["number"] = processed_data.get("id", 1)
+                if "minCapacity" not in processed_data or processed_data["minCapacity"] is None:
+                    processed_data["minCapacity"] = 2
+                if "seats" not in processed_data or processed_data["seats"] is None:
+                    processed_data["seats"] = 4
+                if "maxCapacity" not in processed_data or processed_data["maxCapacity"] is None:
+                    processed_data["maxCapacity"] = 4
+
+            # If table is 'customer' or 'staff', set default User attributes
+            if table_name in ("customer", "staff"):
+                u_id = processed_data.get("id", 1)
+                prefix = "customer" if table_name == "customer" else "staff"
+                if table_name == "staff":
+                    u_id += 1000
+                    processed_data["id"] = u_id
+                    processed_data["roleID"] = processed_data.get("roleID", 2)
+                if "username" not in processed_data or not processed_data["username"]:
+                    processed_data["username"] = f"{prefix}_{u_id}"
+                if "email" not in processed_data or not processed_data["email"]:
+                    processed_data["email"] = f"{prefix}_{u_id}@example.com"
+                if "password" not in processed_data or not processed_data["password"]:
+                    processed_data["password"] = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeg6Lruj3vjPGga31lW"
+
+            # If table is 'orders', set defaults for missing financial fields
+            if table_name == "orders":
+                tp = processed_data.get("totalPrice", 0.0)
+                if "subtotal" not in processed_data or processed_data["subtotal"] is None:
+                    processed_data["subtotal"] = tp
+                if "tax" not in processed_data or processed_data["tax"] is None:
+                    processed_data["tax"] = 0.0
+                if "delivery" not in processed_data or processed_data["delivery"] is None:
+                    processed_data["delivery"] = 0.0
+
+            # If table is 'reviews', map customerID/customer_id to userID
+            if table_name == "reviews":
+                cid = processed_data.pop("customerID", None) or processed_data.pop("customer_id", None)
+                if cid is not None:
+                    processed_data["userID"] = cid
+
+            # If table is 'discount', ensure dateBegin and dateEnd are datetime objects
+            if table_name == "discount":
+                if "dateBegin" in processed_data and isinstance(processed_data["dateBegin"], str):
+                    processed_data["dateBegin"] = datetime.fromisoformat(processed_data["dateBegin"].strip("'"))
+                if "dateEnd" in processed_data and isinstance(processed_data["dateEnd"], str):
+                    processed_data["dateEnd"] = datetime.fromisoformat(processed_data["dateEnd"].strip("'"))
+
             items.append(model_class(**processed_data))
+
     return items
+
 
 # =========================
 # HÀM THỰC THI CHÍNH (Main Execution)
@@ -150,13 +225,14 @@ def run_seed():
             ("categories", Category),
             ("tables", Table),
             ("discount", Discount),
-            ("customer", Customer),
-            ("staff", Staff),
+            ("customer", User),
+            ("staff", User),
             ("dish", Dish),
             ("orders", Order),
             ("reviews", Review),
             ("order_detail", OrderDetail)
         ]
+
 
         for table_name, model_class in table_order:
             print(f"-> Đang nạp bảng: {table_name}...")

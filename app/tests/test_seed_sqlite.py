@@ -6,8 +6,8 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.db.seed_loader import load_from_sql_generic # Sử dụng hàm Generic bạn vừa viết
 from app.models import (
-    Role, Staff, Category, Dish, 
-    Table, Customer, Order, OrderDetail, 
+    Role, User, Category, Dish, 
+    Table, Order, OrderDetail, 
     Review, Discount
 )
 
@@ -33,8 +33,14 @@ def clear_all_data(engine):
 def test_seed_sqlite_full_system():
     # Đảm bảo thư mục chứa file .db tồn tại
     SQLITE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if SQLITE_DB_PATH.exists():
+        try:
+            SQLITE_DB_PATH.unlink()
+        except Exception:
+            pass
     
     # 1️⃣ Khởi tạo Engine SQLite
+
     engine = create_engine(
         SQLITE_URL,
         connect_args={"check_same_thread": False},
@@ -57,13 +63,14 @@ def test_seed_sqlite_full_system():
         ("categories", Category),
         ("tables", Table),
         ("discount", Discount),
-        ("customer", Customer),
-        ("staff", Staff),
+        ("customer", User),
+        ("staff", User),
         ("dish", Dish),
         ("orders", Order),
         ("reviews", Review),
         ("order_detail", OrderDetail)
     ]
+
 
     # 5️⃣ Thực hiện nạp dữ liệu qua hàm Generic
     with SessionLocal() as db:
