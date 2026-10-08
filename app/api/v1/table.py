@@ -10,19 +10,30 @@ from app.services import table as table_service
 public_router = APIRouter()
 private_router = APIRouter()
 
+from app.services import layout as layout_service
+
 @public_router.get(
     "", 
     response_model=ResponseSchema[List[TableResponse]],
     summary="Get Tables with Pagination",
-    description="Retrieve a paginated list of tables. You can filter by status or minimum capacity."
+    description="Retrieve a paginated list of tables. You can filter by status, minimum capacity, or unplaced status."
 )
 async def get_tables(
     status: TableStatus = Query(None),
     minCapacity: int = Query(None, ge=1, description="Filter tables that can accommodate at least this many people"),
+    unplaced: bool = Query(None, description="Filter tables not yet placed on floor layout"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
+    if unplaced:
+        tables = layout_service.get_unplaced_tables(db)
+        return ResponseSchema[List[TableResponse]](
+            data=tables,
+            message="Get unplaced table list successfully.",
+            meta={"page": 1, "limit": len(tables), "total": len(tables)}
+        )
+
     filters = {"status": status, "minCapacity": minCapacity}
     tables, total = table_service.get_tables(db, filters=filters, page=page, limit=limit)
 
@@ -31,6 +42,7 @@ async def get_tables(
         message="Get table list successfully.",
         meta={"page": page, "limit": limit, "total": total}
     )
+
 
 @public_router.get(
     "/{id}",

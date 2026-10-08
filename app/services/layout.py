@@ -19,11 +19,12 @@ def get_area_layout(db: Session, area_id: int):
     return area, items, tables
 
 def get_unplaced_tables(db: Session) -> List[Table]:
-    placed_table_ids = db.query(FloorItem.tableID).filter(FloorItem.tableID.isnot(None)).subquery()
+    placed_table_ids = db.query(FloorItem.tableID).filter(FloorItem.tableID.isnot(None))
     return db.query(Table).filter(
         Table.status != "DELETED",
         ~Table.id.in_(placed_table_ids)
     ).all()
+
 
 def save_area_layout(db: Session, area_id: int, payload: LayoutPayload):
     area = db.query(Area).filter(Area.id == area_id).first()
