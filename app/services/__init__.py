@@ -3,4 +3,5 @@ from .dish import get_all_dishes, get_dish, post_dish, put_dish, patch_dish, del
 from .category import get_categories
 from . import layout
 from . import table_ops
-from . import display_status
+from . import display_status
+from . import table_recommendation
