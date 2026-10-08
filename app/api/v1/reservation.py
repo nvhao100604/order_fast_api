@@ -143,6 +143,8 @@ async def update_reservation(
         data=updated
     )
 
+from app.services.reservation_checkin import checkin_reservation
+
 @private_router.post(
     "/{id}/cancel",
     response_model=ResponseSchema[ReservationResponse],
@@ -163,6 +165,27 @@ async def cancel_reservation(
         success=True,
         message="Reservation cancelled successfully.",
         data=cancelled
+    )
+
+@private_router.post(
+    "/{id}/checkin",
+    summary="Check-in a reservation",
+    description="Check-in a confirmed reservation, open linked tables, and create draft order."
+)
+async def checkin_reservation_endpoint(
+    id: int = Path(..., ge=1, description="Reservation ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = checkin_reservation(db, reservation_id=id, staff_id=current_user.id)
+    return ResponseSchema[dict](
+        success=True,
+        message=f"Reservation {id} checked in successfully.",
+        data={
+            "reservationID": result["reservation"].id,
+            "orderID": result["order"].id if result["order"] else None,
+            "tableIDs": [t.id for t in result["tables"]]
+        }
     )
 
 @private_router.delete(
