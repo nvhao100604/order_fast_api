@@ -13,8 +13,12 @@ class ReservationBase(BaseSchema):
     reservationTime: datetime
     specialRequests: Optional[str] = Field(None, max_length=255)
 
+from typing import Optional, List
+
 class ReservationCreate(ReservationBase):
     userID: Optional[int] = None
+    tableID: Optional[int] = None
+    tableIDs: List[int] = Field(default_factory=list)
 
 class ReservationUpdate(BaseSchema):
     numberOfGuests: Optional[int] = None
@@ -22,12 +26,14 @@ class ReservationUpdate(BaseSchema):
     specialRequests: Optional[str] = None
     status: Optional[ReservationStatus] = None
     tableID: Optional[int] = None
+    tableIDs: Optional[List[int]] = None
 
 class ReservationResponse(ReservationBase):
     id: int
     status: ReservationStatus
     userID: Optional[int]
     tableID: Optional[int]
+    tableIDs: List[int] = Field(default_factory=list)
     createdAt: datetime
     updatedAt: datetime
 

@@ -37,6 +37,9 @@ def create_reservation_service(
         elif not user_id:
             user_id = current_user.id
 
+    table_ids = getattr(data, "tableIDs", []) or []
+    primary_table_id = getattr(data, "tableID", None) or (table_ids[0] if table_ids else None)
+
     reservation = Reservation(
         fullName=data.fullName,
         email=data.email,
@@ -46,10 +49,10 @@ def create_reservation_service(
         specialRequests=data.specialRequests,
         status=ReservationStatus.PENDING,
         userID=user_id,
-        tableID=None
+        tableID=primary_table_id
     )
 
-    return reservation_crud.create_reservation(db=db, reservation=reservation)
+    return reservation_crud.create_reservation(db=db, reservation=reservation, table_ids=table_ids)
 
 def get_reservations_service(
     db: Session,

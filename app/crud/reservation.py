@@ -43,9 +43,23 @@ def get_reservation_by_id(db: Session, reservation_id: int) -> Optional[Reservat
     """Lấy thông tin chi tiết đặt bàn theo ID"""
     return db.query(Reservation).filter(Reservation.id == reservation_id).first()
 
-def create_reservation(db: Session, reservation: Reservation) -> Reservation:
+from app.models.reservation import Reservation, reservation_tables
+
+def create_reservation(db: Session, reservation: Reservation, table_ids: List[int] = None) -> Reservation:
     """Tạo lượt đặt bàn mới"""
     db.add(reservation)
+    db.flush()
+
+    table_ids_to_link = list(table_ids or [])
+    if reservation.tableID and reservation.tableID not in table_ids_to_link:
+        table_ids_to_link.append(reservation.tableID)
+
+    for tid in table_ids_to_link:
+        try:
+            db.execute(reservation_tables.insert().values(reservation_id=reservation.id, table_id=tid))
+        except Exception:
+            pass
+
     db.commit()
     db.refresh(reservation)
     return reservation
