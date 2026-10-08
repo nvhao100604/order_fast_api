@@ -59,13 +59,26 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
 
     return orders, total
 
-def post_order(db: Session, order_in: Order, details_in: List[dict]):
+from app.models.ordering import Order, OrderDetail, order_tables
+
+def post_order(db: Session, order_in: Order, details_in: List[dict], table_ids: List[int] = None):
     db.add(order_in)
     db.flush()
     
     for detail in details_in:
         detail_db = OrderDetail(**detail, orderID=order_in.id)
         db.add(detail_db)
+
+    # Phase 2: populate order_tables junction from table_ids and legacy tableID
+    table_ids_to_link = list(table_ids or [])
+    if order_in.tableID and order_in.tableID not in table_ids_to_link:
+        table_ids_to_link.append(order_in.tableID)
+
+    for tid in table_ids_to_link:
+        try:
+            db.execute(order_tables.insert().values(order_id=order_in.id, table_id=tid))
+        except Exception:
+            pass  # Ignore duplicate conflict
 
     db.commit()
     db.refresh(order_in)

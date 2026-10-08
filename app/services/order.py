@@ -90,8 +90,9 @@ def post_order(
             "price": d["price"]
         })
 
-    order_in = Order(**order_data)
-    return order_crud.post_order(db=db, order_in=order_in, details_in=cleaned_details)
+    table_ids = getattr(p, "tableIDs", []) or []
+    order_in_model = Order(**order_data)
+    return order_crud.post_order(db=db, order_in=order_in_model, details_in=cleaned_details, table_ids=table_ids)
 
 def get_order(
     db: Session,
