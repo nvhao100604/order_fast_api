@@ -95,6 +95,7 @@ class OrderCreate(BaseSchema):
     staffID: Optional[int] = None
     customerID: int
     tableID: Optional[int] = None
+    tableIDs: List[int] = Field(default_factory=list)  # Phase 2: multi-table
     discountID: Optional[int] = None
     
     subtotal: float
@@ -118,6 +119,7 @@ class OrderResponse(BaseSchema):
     staffID: int
     customerID: int
     tableID: Optional[int]
+    tableIDs: List[int] = Field(default_factory=list)  # Phase 2: multi-table
     discountID: Optional[int]
     
     details: List[OrderDetailResponse]
@@ -137,3 +139,8 @@ class OrderFilter(BaseSchema):
     end_date: Optional[datetime] = None
     customer_search: Optional[str] = None
     staff_search: Optional[str] = None
+
+
+class TableStatusResponse(TableResponse):
+    """TableResponse extended with computed displayStatus (never persisted)."""
+    displayStatus: Optional[str] = None  # EMPTY | OCCUPIED | PAYING | CLEANING | RESERVED
