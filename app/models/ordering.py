@@ -59,6 +59,13 @@ class Table(Base):
     reservations: Mapped[List["Reservation"]] = relationship(
         back_populates="table"
     )
+    # Many-to-Many: tables <-> reservations (Phase 3)
+    linkedReservations: Mapped[List["Reservation"]] = relationship(
+        "Reservation",
+        secondary="reservation_tables",
+        back_populates="tables",
+        viewonly=False
+    )
 
 
 class Order(Base):

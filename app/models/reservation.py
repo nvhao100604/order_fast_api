@@ -4,16 +4,27 @@ from sqlalchemy import (
     DateTime,
     Integer,
     Enum as SQLEnum,
+    Column,
+    Table as SATable,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 
 from app.db.base import Base
 from app.models.enum import ReservationStatus
 
 if TYPE_CHECKING:
     from app.models import User, Table
+
+
+# Many-to-Many association table for reservations <-> tables (Phase 3)
+reservation_tables = SATable(
+    "reservation_tables",
+    Base.metadata,
+    Column("reservation_id", Integer, ForeignKey("reservations.id", ondelete="CASCADE"), primary_key=True),
+    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class Reservation(Base):
@@ -80,8 +91,15 @@ class Reservation(Base):
         nullable=True,
     )
 
-    # Thay vì chỉ có back_populates
     table: Mapped[Optional["Table"]] = relationship(
         "Table", 
         back_populates="reservations"
+    )
+
+    # Many-to-Many: reservations <-> tables (Phase 3 multi-table reservation)
+    tables: Mapped[List["Table"]] = relationship(
+        "Table",
+        secondary="reservation_tables",
+        back_populates="linkedReservations",
+        viewonly=False
     )
