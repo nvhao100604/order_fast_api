@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, CheckConstraint, Float, String, ForeignKey, Integer, Enum as SQLEnum
+from sqlalchemy import Boolean, CheckConstraint, Column, Float, String, ForeignKey, Integer, Enum as SQLEnum, Table as SATable
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from typing import TYPE_CHECKING, List, Optional
@@ -10,6 +10,14 @@ if TYPE_CHECKING:
     from .catalog import Dish
     from .reservation import Reservation
     from .layout import Area, FloorItem
+
+# Many-to-Many association table for orders <-> tables (Phase 2)
+order_tables = SATable(
+    "order_tables",
+    Base.metadata,
+    Column("order_id", Integer, ForeignKey("orders.id", ondelete="CASCADE"), primary_key=True),
+    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class Table(Base):
     __tablename__ = "tables"
@@ -33,6 +41,13 @@ class Table(Base):
     )
     
     orders: Mapped[List["Order"]] = relationship(back_populates="table")
+    # Many-to-Many: tables <-> orders (Phase 2 multi-table linking)
+    linkedOrders: Mapped[List["Order"]] = relationship(
+        "Order",
+        secondary="order_tables",
+        back_populates="tables",
+        viewonly=False
+    )
     area: Mapped[Optional["Area"]] = relationship("Area", back_populates="tables")
     floorItem: Mapped[Optional["FloorItem"]] = relationship("FloorItem", back_populates="table", uselist=False)
 
@@ -80,6 +95,13 @@ class Order(Base):
     discount: Mapped[Optional["Discount"]] = relationship(back_populates="orders")
 
     details: Mapped[List["OrderDetail"]] = relationship(back_populates="order")
+    # Many-to-Many: orders <-> tables (Phase 2 multi-table linking)
+    tables: Mapped[List["Table"]] = relationship(
+        "Table",
+        secondary="order_tables",
+        back_populates="linkedOrders",
+        viewonly=False
+    )
 
 class OrderDetail(Base):
     __tablename__ = "order_details"
