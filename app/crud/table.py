@@ -44,9 +44,16 @@ def update_table(db: Session, table_id: int, updated_fields: dict):
     """Cập nhật một số trường của bàn theo ID (status, capacity, number, v.v.)"""
     table = db.query(Table).filter(Table.id == table_id).first()
     if table:
+        old_area_id = table.areaID
         for key, value in updated_fields.items():
             if hasattr(table, key):
                 setattr(table, key, value)
+        
+        # Nếu areaID bị thay đổi, xóa FloorItem cũ để tránh mâu thuẫn vị trí sơ đồ
+        if "areaID" in updated_fields and updated_fields["areaID"] != old_area_id:
+            from app.models.layout import FloorItem
+            db.query(FloorItem).filter(FloorItem.tableID == table_id).delete(synchronize_session=False)
+
         db.commit()
         db.refresh(table)
     return table
