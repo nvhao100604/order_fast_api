@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, allow_internal
 from app.models.user import User
 from app.services import layout as layout_service
 from app.schemas.layout import AreaResponse, AreaLayoutResponse, LayoutPayload
@@ -31,7 +31,7 @@ def update_area_layout(
     area_id: int, 
     payload: LayoutPayload, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(allow_internal)
 ):
     area, items, tables = layout_service.save_area_layout(db, area_id, payload)
     return {
