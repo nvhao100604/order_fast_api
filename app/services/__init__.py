@@ -5,4 +5,6 @@ from . import layout
 from . import table_ops
 from . import display_status
 from . import table_recommendation
-from . import reservation_checkin
+from . import reservation_checkin
+from . import idempotency
+
