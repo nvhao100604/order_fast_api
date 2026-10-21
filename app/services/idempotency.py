@@ -70,6 +70,7 @@ def evaluate_idempotency(
         return None, record
 
     # Create new PENDING record
+    from sqlalchemy.exc import IntegrityError
     new_record = IdempotencyRecord(
         key=key,
         userID=user_id,
@@ -79,9 +80,29 @@ def evaluate_idempotency(
         lockedUntil=now + timedelta(seconds=LEASE_SECONDS),
     )
     db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
-    return None, new_record
+    try:
+        db.commit()
+        db.refresh(new_record)
+        return None, new_record
+    except IntegrityError:
+        db.rollback()
+        # Another concurrent request inserted the key in the exact same millisecond
+        record = db.query(IdempotencyRecord).filter(IdempotencyRecord.key == key).first()
+        if record:
+            if record.requestHash != payload_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Idempotency-Key reused with a different request payload."
+                )
+            if record.status == IdempotencyStatus.SUCCESS:
+                data = json.loads(record.responseBody) if record.responseBody else None
+                return {"code": record.responseCode or 200, "data": data}, None
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A request with this Idempotency-Key is currently being processed."
+            )
+        raise
+
 
 
 def finalize_idempotency(
