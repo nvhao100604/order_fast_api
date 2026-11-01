@@ -1,11 +1,16 @@
 from ast import Set
 from functools import lru_cache
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import computed_field
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", 
+        env_file=ENV_FILE if ENV_FILE.exists() else ".env",
+        extra="ignore", 
         env_file_encoding="utf-8",
         case_sensitive=True
     )
