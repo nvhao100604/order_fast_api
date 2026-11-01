@@ -1,20 +1,21 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, Header, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, allow_all
 from app.core.constants import RoleID
 from app.models.enum import OrderStatus
 from app.models.user import User
 from app.schemas.ordering import OrderCreate, OrderFilter, OrderResponse
 from app.schemas.response import ResponseSchema
 from app.services import order as order_service
-from app.api.deps import allow_all
 from app.core.websocket import manager
+from app.services.idempotency import compute_payload_hash, evaluate_idempotency, finalize_idempotency, fail_idempotency
 
 router = APIRouter(
     dependencies=[Depends(allow_all)]
 )
+
 
 @router.get(
     "",
@@ -51,37 +52,71 @@ async def get_orders(
 @router.post(
     "",
     response_model=ResponseSchema[OrderResponse],
+    status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ResponseSchema} },
     summary="Create an order",
     description="Create an order and insert to the database."
 )
 async def post_order(
     order_data: OrderCreate,
+    response: Response,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.roleID == RoleID.CUSTOMER:
-        # Nếu là khách: Ghi đè customerID bằng ID của chính họ để tránh đặt hộ người khác
-        order_data.customerID = current_user.id
-        order_data.staffID = 1
-    else:
-        # Nếu là Staff/Admin: Lấy customerID từ data gửi lên (để tạo đơn hộ khách)
-        if not order_data.customerID:
-            raise HTTPException(status_code=400, detail="This action need the customerID.")
+    if idempotency_key:
+        payload_hash = compute_payload_hash(order_data.model_dump(mode="json"))
+        cached, record = evaluate_idempotency(
+            db=db,
+            key=idempotency_key,
+            user_id=current_user.id,
+            path="/api/v1/orders",
+            payload_hash=payload_hash
+        )
+        if cached:
+            response.headers["X-Cache-Lookup"] = "HIT"
+            response.status_code = cached["code"]
+            return cached["data"]
 
-    new_order = order_service.post_order(db=db, order_in=order_data)
+    try:
+        if current_user.roleID == RoleID.CUSTOMER:
+            # Nếu là khách: Ghi đè customerID bằng ID của chính họ để tránh đặt hộ người khác
+            order_data.customerID = current_user.id
+            order_data.staffID = 1
+        else:
+            # Nếu là Staff/Admin: Lấy customerID từ data gửi lên (để tạo đơn hộ khách)
+            if not order_data.customerID:
+                raise HTTPException(status_code=400, detail="This action need the customerID.")
 
-    await manager.broadcast({
-        "type": "NEW_ORDER",
-        "order_id": new_order.id,
-        "customer_name": current_user.name,
-        "message": f"Have new order from {new_order.tableID}!"
-    })
+        new_order = order_service.post_order(db=db, order_in=order_data)
 
-    return ResponseSchema[OrderResponse](
-        message="Create the order successfully.",
-        data=new_order
-    )
+        await manager.broadcast({
+            "type": "NEW_ORDER",
+            "order_id": new_order.id,
+            "customer_name": current_user.name,
+            "message": f"Have new order from {new_order.tableID}!"
+        })
+
+        res_payload = ResponseSchema[OrderResponse](
+            message="Create the order successfully.",
+            data=new_order
+        )
+
+        if idempotency_key:
+            finalize_idempotency(
+                db=db,
+                key=idempotency_key,
+                response_code=status.HTTP_201_CREATED,
+                response_data=res_payload.model_dump(mode="json")
+            )
+            response.headers["X-Cache-Lookup"] = "MISS"
+
+        return res_payload
+    except Exception:
+        if idempotency_key:
+            fail_idempotency(db=db, key=idempotency_key)
+        raise
+
 
 @router.get(
     "/{id}",

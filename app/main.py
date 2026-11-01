@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.api.deps import get_current_user_ws
 from app.api.v1 import router
+from app.api.v1.health import router as health_router
 from app.core.config import settings
 from fastapi.exceptions import RequestValidationError
 from app.core.exceptions import global_exception_handler, http_exception_handler, validation_exception_handler, value_error_handler
@@ -48,4 +49,9 @@ async def websocket_endpoint(websocket: WebSocket,
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-app.include_router(router.api_router, prefix="/api/v1") 
+app.include_router(health_router, prefix="/health", tags=["Health"])
+app.include_router(router.api_router, prefix="/api/v1")
+
+@app.get("/heath", include_in_schema=False)
+def heath_alias():
+    return RedirectResponse(url="/health")

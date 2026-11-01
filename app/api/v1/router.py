@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.api.deps import get_current_user
-from app.api.v1 import auth, dashboard, dish, category, order, table, user, reservation, admin, areas, table_ops, recommendation
+from app.api.v1 import auth, dashboard, dish, category, order, table, user, reservation, admin, areas, table_ops, recommendation, health
 
 api_router = APIRouter()
 
@@ -23,6 +23,7 @@ public_router.include_router(table.public_router, prefix="/tables", tags=["Table
 public_router.include_router(areas.router, prefix="/areas", tags=["Area"])
 public_router.include_router(dashboard.public_router, prefix="/dashboard", tags=["Dashboard"])
 public_router.include_router(reservation.public_router, prefix="/reservations", tags=["Reservation"])
+public_router.include_router(health.router, prefix="/health", tags=["Health"])
 
 
 

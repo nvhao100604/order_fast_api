@@ -8,4 +8,5 @@ from .category import CategoryBase, CategoryResponse, CategoryFilter
 from .ordering import TableResponse, TableCreate, TableUpdate, TableFilter, OrderDetailBase, OrderDetailResponse, OrderCreate, OrderResponse
 from .reservation import ReservationBase, ReservationCreate, ReservationUpdate, ReservationResponse, ReservationFilter
 from .layout import AreaBase, AreaResponse, FloorItemBase, FloorItemCreate, FloorItemResponse, LayoutPayload, AreaLayoutResponse, TableSuggestion
+from .health import HealthCheckResponse, DatabaseHealth
 

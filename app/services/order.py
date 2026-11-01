@@ -63,6 +63,27 @@ def get_orders(
     )
     return orders, total
 
+from sqlalchemy import select, or_
+from app.models.ordering import Table
+from app.models.enum import TableStatus
+
+ACTIVE_ORDER_STATUSES = [
+    OrderStatus.PENDING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.PREPARING,
+    OrderStatus.SHIPPING,
+]
+
+def _lock_tables_for_order(db: Session, table_ids: list[int]) -> list[Table]:
+    if not table_ids:
+        return []
+    sorted_ids = sorted(list(set(table_ids)))
+    try:
+        stmt = select(Table).filter(Table.id.in_(sorted_ids)).order_by(Table.id.asc()).with_for_update()
+        return db.execute(stmt).scalars().all()
+    except Exception:
+        return db.query(Table).filter(Table.id.in_(sorted_ids)).order_by(Table.id.asc()).all()
+
 def post_order(
     db: Session,
     order_in: OrderCreate
@@ -73,9 +94,43 @@ def post_order(
     if (p.tax + p.subtotal + p.delivery) != p.totalPrice:
         raise ValueError("The sum of itemized costs does not match the total price provided.")
     
-    # dump order data for crud
+    # 1. Lock bàn và kiểm tra xem có đơn hàng nào đang hoạt động trên bàn không
+    table_ids = list(getattr(p, "tableIDs", []) or [])
+    if p.tableID and p.tableID not in table_ids:
+        table_ids.append(p.tableID)
+
+    if table_ids:
+        locked_tables = _lock_tables_for_order(db, table_ids)
+        if len(locked_tables) != len(table_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more tables not found."
+            )
+
+        existing_active = (
+            db.query(Order)
+            .filter(
+                Order.status.in_(ACTIVE_ORDER_STATUSES),
+                or_(
+                    Order.tableID.in_(table_ids),
+                    Order.tables.any(Table.id.in_(table_ids))
+                )
+            )
+            .first()
+        )
+        if existing_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Bàn đang có đơn hàng #{existing_active.id} chưa hoàn tất. Không thể tạo đơn mới trên bàn này."
+            )
+
+        for t in locked_tables:
+            t.status = TableStatus.OCCUPIED
+
+    # 2. Dump order data for crud
     order_data = order_in.model_dump()
     details_data = order_data.pop("details")
+    order_data.pop("tableIDs", None)
 
     cleaned_details = []
     for d in details_data:
@@ -90,9 +145,9 @@ def post_order(
             "price": d["price"]
         })
 
-    table_ids = getattr(p, "tableIDs", []) or []
     order_in_model = Order(**order_data)
     return order_crud.post_order(db=db, order_in=order_in_model, details_in=cleaned_details, table_ids=table_ids)
+
 
 def get_order(
     db: Session,

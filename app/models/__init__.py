@@ -4,5 +4,6 @@ from .catalog import Dish, Category
 from .ordering import Order, OrderDetail, Table
 from .layout import Area, FloorItem
 from .token import RefreshToken
-from .enum import Status, DiscountCategory, TableStatus, OrderStatus, ReservationStatus, FloorItemKind, TableShape
+from .idempotency import IdempotencyRecord
+from .enum import Status, DiscountCategory, TableStatus, OrderStatus, ReservationStatus, FloorItemKind, TableShape, IdempotencyStatus
 

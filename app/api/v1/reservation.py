@@ -13,6 +13,9 @@ from app.schemas.reservation import (
 from app.schemas.response import ResponseSchema
 from app.services import reservation as reservation_service
 
+from fastapi import APIRouter, Depends, Path, Query, status, Header, Response
+from app.services.idempotency import compute_payload_hash, evaluate_idempotency, finalize_idempotency, fail_idempotency
+
 public_router = APIRouter()
 private_router = APIRouter()
 
@@ -27,18 +30,48 @@ private_router = APIRouter()
 )
 async def create_reservation(
     data: ReservationCreate,
+    response: Response,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db)
 ):
-    new_reservation = reservation_service.create_reservation_service(
-        db=db,
-        data=data,
-        current_user=None
-    )
-    return ResponseSchema[ReservationResponse](
-        success=True,
-        message="Reservation created successfully.",
-        data=new_reservation
-    )
+    if idempotency_key:
+        payload_hash = compute_payload_hash(data.model_dump(mode="json"))
+        cached, record = evaluate_idempotency(
+            db=db,
+            key=idempotency_key,
+            user_id=None,
+            path="/api/v1/reservations",
+            payload_hash=payload_hash
+        )
+        if cached:
+            response.headers["X-Cache-Lookup"] = "HIT"
+            response.status_code = cached["code"]
+            return cached["data"]
+
+    try:
+        new_reservation = reservation_service.create_reservation_service(
+            db=db,
+            data=data,
+            current_user=None
+        )
+        res_payload = ResponseSchema[ReservationResponse](
+            success=True,
+            message="Reservation created successfully.",
+            data=new_reservation
+        )
+        if idempotency_key:
+            finalize_idempotency(
+                db=db,
+                key=idempotency_key,
+                response_code=status.HTTP_201_CREATED,
+                response_data=res_payload.model_dump(mode="json")
+            )
+            response.headers["X-Cache-Lookup"] = "MISS"
+        return res_payload
+    except Exception:
+        if idempotency_key:
+            fail_idempotency(db=db, key=idempotency_key)
+        raise
 
 # --- PRIVATE ENDPOINTS ---
 
@@ -51,21 +84,52 @@ async def create_reservation(
 )
 async def create_my_reservation(
     data: ReservationCreate,
+    response: Response,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    new_reservation = reservation_service.create_reservation_service(
-        db=db,
-        data=data,
-        current_user=current_user
-    )
-    return ResponseSchema[ReservationResponse](
-        success=True,
-        message="Reservation created successfully.",
-        data=new_reservation
-    )
+    if idempotency_key:
+        payload_hash = compute_payload_hash(data.model_dump(mode="json"))
+        cached, record = evaluate_idempotency(
+            db=db,
+            key=idempotency_key,
+            user_id=current_user.id,
+            path="/api/v1/reservations/me",
+            payload_hash=payload_hash
+        )
+        if cached:
+            response.headers["X-Cache-Lookup"] = "HIT"
+            response.status_code = cached["code"]
+            return cached["data"]
+
+    try:
+        new_reservation = reservation_service.create_reservation_service(
+            db=db,
+            data=data,
+            current_user=current_user
+        )
+        res_payload = ResponseSchema[ReservationResponse](
+            success=True,
+            message="Reservation created successfully.",
+            data=new_reservation
+        )
+        if idempotency_key:
+            finalize_idempotency(
+                db=db,
+                key=idempotency_key,
+                response_code=status.HTTP_201_CREATED,
+                response_data=res_payload.model_dump(mode="json")
+            )
+            response.headers["X-Cache-Lookup"] = "MISS"
+        return res_payload
+    except Exception:
+        if idempotency_key:
+            fail_idempotency(db=db, key=idempotency_key)
+        raise
 
 @private_router.get(
+
     "",
     response_model=ResponseSchema[List[ReservationResponse]],
     summary="Get list of reservations",

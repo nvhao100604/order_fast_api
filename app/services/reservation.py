@@ -1,22 +1,37 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Tuple, Optional
 from fastapi import HTTPException, status
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
 from app.core.constants import RoleID
 from app.crud import reservation as reservation_crud
 from app.crud import table as table_crud
 from app.models.enum import ReservationStatus, TableStatus
+from app.models.ordering import Table
 from app.models.reservation import Reservation
 from app.models.user import User
 from app.schemas.reservation import ReservationCreate, ReservationUpdate
+
+def _lock_tables_for_update(db: Session, table_ids: List[int]) -> List[Table]:
+    """Khóa các hàng Table theo thứ tự id tăng dần để tránh Deadlock."""
+    if not table_ids:
+        return []
+    sorted_ids = sorted(list(set(table_ids)))
+    try:
+        stmt = select(Table).filter(Table.id.in_(sorted_ids)).order_by(Table.id.asc()).with_for_update()
+        tables = db.execute(stmt).scalars().all()
+    except Exception:
+        # SQLite graceful fallback for test environment
+        tables = db.query(Table).filter(Table.id.in_(sorted_ids)).order_by(Table.id.asc()).all()
+    return tables
 
 def create_reservation_service(
     db: Session,
     data: ReservationCreate,
     current_user: Optional[User] = None
 ) -> Reservation:
-    """Tạo đơn đặt bàn mới"""
+    """Tạo đơn đặt bàn mới với cơ chế khóa dòng và kiểm tra xung đột thời gian"""
     # 1. Kiểm tra thời gian đặt bàn phải ở tương lai
     now = datetime.now(timezone.utc)
     res_time = data.reservationTime
@@ -37,8 +52,54 @@ def create_reservation_service(
         elif not user_id:
             user_id = current_user.id
 
-    table_ids = getattr(data, "tableIDs", []) or []
-    primary_table_id = getattr(data, "tableID", None) or (table_ids[0] if table_ids else None)
+    table_ids = list(getattr(data, "tableIDs", []) or [])
+    if data.tableID and data.tableID not in table_ids:
+        table_ids.append(data.tableID)
+
+    primary_table_id = data.tableID or (table_ids[0] if table_ids else None)
+
+    # 3. Khóa bàn và kiểm tra xung đột khung giờ (Pessimistic Locking & Overlap Validation)
+    if table_ids:
+        locked_tables = _lock_tables_for_update(db, table_ids)
+        if len(locked_tables) != len(table_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more selected tables not found."
+            )
+
+        for t in locked_tables:
+            if t.status == TableStatus.DELETED or getattr(t, "walkInOnly", False):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Bàn số {t.number} không khả dụng để đặt trước."
+                )
+
+        duration = getattr(data, "durationMinutes", None) or 90
+        turnover = 15
+        new_start = res_time
+        new_end = new_start + timedelta(minutes=duration + turnover)
+
+        active_res = (
+            db.query(Reservation)
+            .filter(
+                Reservation.status.in_([ReservationStatus.PENDING, ReservationStatus.CONFIRMED]),
+                or_(
+                    Reservation.tableID.in_(table_ids),
+                    Reservation.tables.any(Table.id.in_(table_ids))
+                )
+            )
+            .all()
+        )
+
+        for r in active_res:
+            r_start = r.reservationTime.replace(tzinfo=timezone.utc) if r.reservationTime.tzinfo is None else r.reservationTime
+            r_dur = getattr(r, "durationMinutes", None) or 90
+            r_end = r_start + timedelta(minutes=r_dur + 15)
+            if r_start < new_end and new_start < r_end:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Bàn đã có khách đặt trong khung giờ này. Vui lòng chọn bàn hoặc thời gian khác."
+                )
 
     reservation = Reservation(
         fullName=data.fullName,
