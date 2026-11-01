@@ -5,8 +5,16 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.ordering import Table
-from app.models.enum import TableStatus
+from app.models.ordering import Table, Order, order_tables
+from app.models.enum import TableStatus, OrderStatus
+
+_ACTIVE_ORDER_STATUSES = {
+    OrderStatus.PENDING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.PREPARING,
+    OrderStatus.SHIPPING,
+    OrderStatus.UNPAID,
+}
 
 
 def _lock_table(db: Session, table_id: int) -> Table:
@@ -64,9 +72,63 @@ def merge_tables(db: Session, table_ids: List[int]) -> List[Table]:
 
 
 def split_table(db: Session, table_id: int) -> Table:
-    """Remove clusterKey from a single table (detach from merged cluster)."""
+    """Remove clusterKey from a single table (detach from merged cluster).
+
+    - Raises 400 if table is not part of any merged cluster.
+    - Raises 409 if any table in the cluster has an active order.
+    - Resets detached table's clusterKey to None and status to EMPTY.
+    - If only 1 table remains in the cluster, resets that table's clusterKey to None and status to EMPTY.
+    """
     table = _lock_table(db, table_id)
+    if not table.clusterKey:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Table {table_id} is not part of any merged cluster"
+        )
+
+    cluster_key = table.clusterKey
+
+    # Find all tables in the cluster
+    cluster_tables = db.query(Table).filter(Table.clusterKey == cluster_key).all()
+    cluster_table_ids = [t.id for t in cluster_tables]
+
+    # Check for active orders linked to any table in this cluster
+    active_order = (
+        db.query(Order)
+        .join(order_tables, Order.id == order_tables.c.order_id)
+        .filter(
+            order_tables.c.table_id.in_(cluster_table_ids),
+            Order.status.in_(_ACTIVE_ORDER_STATUSES)
+        )
+        .first()
+    )
+    if not active_order:
+        active_order = (
+            db.query(Order)
+            .filter(
+                Order.tableID.in_(cluster_table_ids),
+                Order.status.in_(_ACTIVE_ORDER_STATUSES)
+            )
+            .first()
+        )
+
+    if active_order:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot split table while cluster has an active order. Please complete or cancel the order first."
+        )
+
+    # Detach this table
     table.clusterKey = None
+    table.status = TableStatus.EMPTY
+
+    # If only 1 table remains in the cluster, clear its clusterKey and reset to EMPTY
+    remaining_tables = [t for t in cluster_tables if t.id != table_id]
+    if len(remaining_tables) == 1:
+        remaining_table = remaining_tables[0]
+        remaining_table.clusterKey = None
+        remaining_table.status = TableStatus.EMPTY
+
     db.commit()
     db.refresh(table)
     return table

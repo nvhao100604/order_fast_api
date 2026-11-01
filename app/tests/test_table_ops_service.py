@@ -3,8 +3,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
-from app.models.ordering import Table
-from app.models.enum import TableStatus
+from app.models.ordering import Table, Order, order_tables
+from app.models.enum import TableStatus, OrderStatus
+from fastapi import HTTPException
 from app.services import table_ops
 
 SQLITE_URL = "sqlite:///:memory:"
@@ -58,3 +59,70 @@ def test_close_table_sets_cleaning(db, table_in_db):
     table_ops.open_table(db, table_in_db.id)
     result = table_ops.close_table(db, table_in_db.id)
     assert result.status == TableStatus.CLEANING
+
+
+def test_split_table_raises_400_if_not_in_cluster(db):
+    t = Table(number=10, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.EMPTY, clusterKey=None)
+    db.add(t)
+    db.commit()
+    with pytest.raises(HTTPException) as exc:
+        table_ops.split_table(db, t.id)
+    assert exc.value.status_code == 400
+
+
+def test_split_table_raises_409_if_active_order(db):
+    t1 = Table(number=20, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="ORDCLUS1")
+    t2 = Table(number=21, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="ORDCLUS1")
+    db.add_all([t1, t2])
+    db.commit()
+
+    order = Order(
+        customerID=1,
+        staffID=1,
+        tableID=t1.id,
+        subtotal=100.0,
+        tax=10.0,
+        delivery=0.0,
+        totalPrice=110.0,
+        status=OrderStatus.PENDING,
+    )
+    db.add(order)
+    db.commit()
+    db.execute(order_tables.insert().values(order_id=order.id, table_id=t1.id))
+    db.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        table_ops.split_table(db, t1.id)
+    assert exc.value.status_code == 409
+
+
+def test_split_table_in_two_table_cluster_resets_both(db):
+    t1 = Table(number=30, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="PAIR1234")
+    t2 = Table(number=31, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="PAIR1234")
+    db.add_all([t1, t2])
+    db.commit()
+
+    split_res = table_ops.split_table(db, t1.id)
+    assert split_res.clusterKey is None
+    assert split_res.status == TableStatus.EMPTY
+
+    db.refresh(t2)
+    assert t2.clusterKey is None
+    assert t2.status == TableStatus.EMPTY
+
+
+def test_split_table_in_three_table_cluster_keeps_remaining(db):
+    t1 = Table(number=40, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="TRIPLE12")
+    t2 = Table(number=41, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="TRIPLE12")
+    t3 = Table(number=42, minCapacity=2, seats=4, maxCapacity=4, status=TableStatus.OCCUPIED, clusterKey="TRIPLE12")
+    db.add_all([t1, t2, t3])
+    db.commit()
+
+    split_res = table_ops.split_table(db, t1.id)
+    assert split_res.clusterKey is None
+    assert split_res.status == TableStatus.EMPTY
+
+    db.refresh(t2)
+    db.refresh(t3)
+    assert t2.clusterKey == "TRIPLE12"
+    assert t3.clusterKey == "TRIPLE12"
