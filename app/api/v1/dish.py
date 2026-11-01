@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Path, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.deps import get_db
+from app.api.deps import get_db, allow_internal
 from app.schemas.dish import DishCreate, DishFilter, DishUpdate
 from app.services import dish as dish_service
 from app.schemas import DishResponse
@@ -10,7 +10,7 @@ from app.schemas.response import ResponseSchema
 from app.services.storage import upload_image_to_storage
 
 public_router = APIRouter()
-private_router = APIRouter()
+private_router = APIRouter(dependencies=[Depends(allow_internal)])
 
 @public_router.get(
     "", 

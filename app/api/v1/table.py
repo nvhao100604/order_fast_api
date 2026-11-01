@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.deps import get_db
+from app.api.deps import get_db, allow_internal
 from app.schemas.ordering import TableResponse, TableStatus, TableCreate
 from app.schemas.response import ResponseSchema
 from app.services import table as table_service
 
 public_router = APIRouter()
-private_router = APIRouter()
+private_router = APIRouter(dependencies=[Depends(allow_internal)])
 
 from app.services import layout as layout_service
 

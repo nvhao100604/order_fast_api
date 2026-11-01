@@ -4,13 +4,12 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, get_current_user
-from app.models.user import User
+from app.api.deps import get_db, allow_internal
 from app.services import table_ops
 from app.schemas.ordering import TableStatusResponse
 from app.schemas.response import ResponseSchema
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(allow_internal)])
 
 
 class MergeRequest(BaseModel):
@@ -21,7 +20,6 @@ class MergeRequest(BaseModel):
 def open_table_endpoint(
     table_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     table = table_ops.open_table(db, table_id)
     return ResponseSchema[TableStatusResponse](
@@ -33,7 +31,6 @@ def open_table_endpoint(
 def merge_tables_endpoint(
     body: MergeRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     tables = table_ops.merge_tables(db, body.tableIDs)
     return ResponseSchema[List[TableStatusResponse]](
@@ -45,7 +42,6 @@ def merge_tables_endpoint(
 def split_table_endpoint(
     table_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     table = table_ops.split_table(db, table_id)
     return ResponseSchema[TableStatusResponse](
@@ -57,7 +53,6 @@ def split_table_endpoint(
 def close_table_endpoint(
     table_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     table = table_ops.close_table(db, table_id)
     return ResponseSchema[TableStatusResponse](

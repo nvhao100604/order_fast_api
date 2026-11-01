@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, Header, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db, allow_all
+from app.api.deps import get_current_user, get_db, allow_all, allow_internal
 from app.core.constants import RoleID
 from app.models.enum import OrderStatus
 from app.models.user import User
@@ -157,7 +157,7 @@ async def patch_order_status(
     id: int = Path(..., ge=1, description="The ID of the order to update"),
     new_status: OrderStatus = Query(..., description="The new status to set for the order"),
     db: Session = Depends(get_db),
-    current_staff: User = Depends(get_current_user)
+    current_staff: User = Depends(allow_internal)
 ):
     """
     Endpoint cập nhật trạng thái đơn hàng.

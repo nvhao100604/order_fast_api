@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status, Header, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, allow_all, allow_internal
@@ -12,9 +12,8 @@ from app.schemas.reservation import (
 )
 from app.schemas.response import ResponseSchema
 from app.services import reservation as reservation_service
-
-from fastapi import APIRouter, Depends, Path, Query, status, Header, Response
 from app.services.idempotency import compute_payload_hash, evaluate_idempotency, finalize_idempotency, fail_idempotency
+from app.services.reservation_checkin import checkin_reservation
 
 public_router = APIRouter()
 private_router = APIRouter()
@@ -129,7 +128,6 @@ async def create_my_reservation(
         raise
 
 @private_router.get(
-
     "",
     response_model=ResponseSchema[List[ReservationResponse]],
     summary="Get list of reservations",
@@ -207,8 +205,6 @@ async def update_reservation(
         data=updated
     )
 
-from app.services.reservation_checkin import checkin_reservation
-
 @private_router.post(
     "/{id}/cancel",
     response_model=ResponseSchema[ReservationResponse],
@@ -239,7 +235,7 @@ async def cancel_reservation(
 async def checkin_reservation_endpoint(
     id: int = Path(..., ge=1, description="Reservation ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(allow_internal)
 ):
     result = checkin_reservation(db, reservation_id=id, staff_id=current_user.id)
     return ResponseSchema[dict](
@@ -262,7 +258,6 @@ async def checkin_reservation_endpoint(
 async def delete_reservation(
     id: int = Path(..., ge=1, description="Reservation ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     deleted = reservation_service.delete_reservation_service(
         db=db,

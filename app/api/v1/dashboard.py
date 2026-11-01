@@ -2,16 +2,14 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.api.deps import get_db
+from app.api.deps import get_db, allow_internal
 from app.schemas import ResponseSchema, OrderResponse, TableResponse
 from app.services import dashboard as dash_services
-# Giả sử bạn có dependency để check token cho private router
-from app.api.deps import get_current_user, allow_internal
 
 public_router = APIRouter()
 private_router = APIRouter(
     dependencies=[Depends(allow_internal)]
-    )
+)
 
 # --- PUBLIC ENDPOINTS ---
 
@@ -37,8 +35,7 @@ async def get_tables(db: Session = Depends(get_db)):
     "/orders",
     response_model=ResponseSchema[List[OrderResponse]],
     summary="Get all orders",
-    description="Retrieve all orders for the dashboard. Requires authentication.",
-    dependencies=[Depends(get_current_user)] 
+    description="Retrieve all orders for the dashboard. Requires authentication."
 )
 async def get_orders(db: Session = Depends(get_db)):
     orders = dash_services.get_all_orders(db)
