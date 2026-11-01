@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # --- Supabase ---
     SUPABASE_URL: str = "https://placeholder.supabase.co"
     SUPABASE_KEY: str = "placeholder-key"
+    SUPABASE_BUCKET_NAME: str = "dish_images"
+    SUPABASE_STORAGE_PATH: str = "images"
 
     
     # --- Security ---
