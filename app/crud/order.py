@@ -1,7 +1,7 @@
 from typing import List
 from sqlalchemy import func, or_
 from app.models.ordering import Order, OrderDetail
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.user import User
 
@@ -55,7 +55,19 @@ def get_orders(db: Session, filters: dict, skip: int = 0, limit: int = 10):
     query = query.order_by(Order.createdAt.desc())
     
     total = query.count()
-    orders = query.offset(skip).limit(limit).all()
+    orders = (
+        query
+        .options(
+            joinedload(Order.details).joinedload(OrderDetail.dish),
+            joinedload(Order.customer),
+            joinedload(Order.staff),
+            joinedload(Order.table),
+            joinedload(Order.tables),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     return orders, total
 
@@ -85,7 +97,18 @@ def post_order(db: Session, order_in: Order, details_in: List[dict], table_ids: 
     return order_in
 
 def get_order(db: Session, id: int = 1):
-    return db.query(Order).filter(Order.id == id).first()
+    return (
+        db.query(Order)
+        .options(
+            joinedload(Order.details).joinedload(OrderDetail.dish),
+            joinedload(Order.customer),
+            joinedload(Order.staff),
+            joinedload(Order.table),
+            joinedload(Order.tables),
+        )
+        .filter(Order.id == id)
+        .first()
+    )
 
 def update_order(db: Session, order_id: int, updated_fields: dict):
     """Cập nhật các trường thông tin của đơn hàng (ví dụ: status)"""
